@@ -1,0 +1,250 @@
+import React, { useState, useEffect } from 'react';
+import { School, ArrowLeft, Bell, Lock, Eye, Palette, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+export default function Settings() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('notifications');
+  const [bookingReminders, setBookingReminders] = useState(true);
+  const [availabilityAlerts, setAvailabilityAlerts] = useState(true);
+  const [systemUpdates, setSystemUpdates] = useState(true);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    try {
+      const br = localStorage.getItem('bookingReminders');
+      const aa = localStorage.getItem('availabilityAlerts');
+      const su = localStorage.getItem('systemUpdates');
+      const globalNotifs = localStorage.getItem('notifsOn');
+      if (br !== null) setBookingReminders(JSON.parse(br));
+      else if (globalNotifs !== null) setBookingReminders(JSON.parse(globalNotifs));
+      if (aa !== null) setAvailabilityAlerts(JSON.parse(aa));
+      if (su !== null) setSystemUpdates(JSON.parse(su));
+    } catch (e) {}
+  }, []);
+
+  const toggleBookingReminders = () => {
+    const next = !bookingReminders;
+    setBookingReminders(next);
+    try {
+      localStorage.setItem('bookingReminders', JSON.stringify(next));
+      localStorage.setItem('notifsOn', JSON.stringify(next));
+    } catch (e) {}
+  };
+
+  const toggleAvailabilityAlerts = () => {
+    const next = !availabilityAlerts;
+    setAvailabilityAlerts(next);
+    try { localStorage.setItem('availabilityAlerts', JSON.stringify(next)); } catch (e) {}
+  };
+
+  const toggleSystemUpdates = () => {
+    const next = !systemUpdates;
+    setSystemUpdates(next);
+    try { localStorage.setItem('systemUpdates', JSON.stringify(next)); } catch (e) {}
+  };
+
+  const handleSave = () => {
+    try {
+      localStorage.setItem('bookingReminders', JSON.stringify(bookingReminders));
+      localStorage.setItem('availabilityAlerts', JSON.stringify(availabilityAlerts));
+      localStorage.setItem('systemUpdates', JSON.stringify(systemUpdates));
+      localStorage.setItem('notifsOn', JSON.stringify(bookingReminders));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {}
+  };
+
+  return (
+    <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[4px] z-0" />
+
+      {/* Top Navbar */}
+      <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
+          <School className="w-10 h-10 text-white drop-shadow-md" />
+          <span className="text-3xl font-bold tracking-wide text-white drop-shadow-md">UniSpace</span>
+        </div>
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors bg-white/10 px-4 py-2 rounded-full border border-white/20"
+        >
+          <ArrowLeft className="w-5 h-5" /> Back
+        </button>
+      </header>
+
+      <main className="relative z-10 flex-1 flex flex-col px-8 w-full max-w-[1200px] mx-auto pt-8 pb-12">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white drop-shadow-lg">Settings</h1>
+          <p className="text-blue-100 mt-2 font-medium">Manage your account preferences and notifications</p>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+          
+          {/* Sidebar Navigation */}
+          <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl shrink-0">
+            <nav className="flex flex-col gap-2">
+              <button 
+                onClick={() => setActiveTab('notifications')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'notifications' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
+              >
+                <Bell className="w-5 h-5" /> Notifications
+              </button>
+              <button 
+                onClick={() => setActiveTab('security')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'security' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
+              >
+                <Lock className="w-5 h-5" /> Security
+              </button>
+              <button 
+                onClick={() => setActiveTab('privacy')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'privacy' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
+              >
+                <Eye className="w-5 h-5" /> Privacy
+              </button>
+              <button 
+                onClick={() => setActiveTab('appearance')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'appearance' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
+              >
+                <Palette className="w-5 h-5" /> Appearance
+              </button>
+            </nav>
+          </div>
+
+          {/* Settings Content Area */}
+          <div className="flex-1 bg-[#F8FAFC]/95 backdrop-blur-xl rounded-[2rem] p-8 shadow-2xl border border-white/40 w-full">
+            
+            {activeTab === 'notifications' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Notification Preferences</h2>
+                
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-[#334155] text-lg">Booking Reminders</h3>
+                      <p className="text-slate-500 text-sm mt-1">Receive alerts 15 minutes before your booked time.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={bookingReminders} onChange={toggleBookingReminders} />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-[#334155] text-lg">Availability Alerts</h3>
+                      <p className="text-slate-500 text-sm mt-1">Get notified when a seat in your favorite zone opens up.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={availabilityAlerts} onChange={toggleAvailabilityAlerts} />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-[#334155] text-lg">System Updates</h3>
+                      <p className="text-slate-500 text-sm mt-1">Emails about library hours, events, and app changes.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={systemUpdates} onChange={toggleSystemUpdates} />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-10 pt-6 border-t border-slate-200 flex items-center justify-end">
+                  <button onClick={handleSave} className="bg-[#3B82F6] hover:bg-[#2563EB] text-white px-8 py-3 rounded-full font-bold shadow-md transition-colors flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" /> Save Changes
+                  </button>
+                  {saved && <span className="ml-4 text-sm text-emerald-600 font-semibold">Saved</span>}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'security' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Security Settings</h2>
+                
+                <div className="space-y-6">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="font-bold text-[#334155] text-lg mb-4">Change Password</h3>
+                    <div className="max-w-md space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1.5">Current Password</label>
+                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1.5">New Password</label>
+                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1.5">Confirm New Password</label>
+                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
+                      </div>
+                      <button className="mt-6 bg-[#3B82F6] hover:bg-[#2563EB] text-white px-6 py-2.5 rounded-full font-bold shadow-md transition-colors border border-blue-400">
+                        Update Password
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'privacy' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Privacy Settings</h2>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-[#334155] text-lg">Share Booking Comments</h3>
+                      <p className="text-slate-500 text-sm mt-1">Allow other users to see your comments or feedback on bookings.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-[#334155] text-lg">Public Profile</h3>
+                      <p className="text-slate-500 text-sm mt-1">Make your profile details visible to other students in UniSpace.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'appearance' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Appearance</h2>
+                
+                <div className="space-y-6">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="font-bold text-[#334155] text-lg mb-6">Theme</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+                      <button className="flex flex-col items-center justify-center p-8 border-2 border-blue-500 rounded-xl bg-slate-50 text-slate-800 gap-3 shadow-sm">
+                        <Sun className="w-10 h-10 text-amber-500" />
+                        <span className="font-bold text-lg">Light Mode</span>
+                      </button>
+                      <button className="flex flex-col items-center justify-center p-8 border-2 border-transparent hover:border-slate-300 rounded-xl bg-slate-800 text-white gap-3 shadow-sm transition-colors">
+                        <Moon className="w-10 h-10 text-blue-300" />
+                        <span className="font-bold text-lg">Dark Mode</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

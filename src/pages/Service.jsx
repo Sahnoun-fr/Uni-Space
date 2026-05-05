@@ -175,7 +175,10 @@ const Service = () => {
                </p>
              </div>
              <div className="mt-6 flex justify-between items-end">
-               <button className="bg-[#eaf1f8] hover:bg-[#dbe6f3] text-[#334E68] px-4 py-2 rounded-full font-bold text-[13px] flex items-center gap-2 transition-colors w-max">
+               <button 
+                 onClick={() => navigate('/interactive-maps')}
+                 className="bg-[#eaf1f8] hover:bg-[#dbe6f3] text-[#334E68] px-4 py-2 rounded-full font-bold text-[13px] flex items-center gap-2 transition-colors w-max"
+               >
                  View Maps <ArrowRight size={14} />
                </button>
                {/* Just mimicking the floating N badge from the screenshot */}

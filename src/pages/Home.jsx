@@ -119,7 +119,10 @@ const UniSpacePortal = () => {
               placeholder="Search for quiet spots , study groups ...." 
               className="w-full bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-3 pl-6 pr-14 text-white placeholder-white/80 outline-none focus:bg-white/30 transition-all font-medium text-sm shadow-xl"
             />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center">
+            <button 
+              onClick={() => navigate('/interactive-maps')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center"
+            >
                <span className="text-white/70 font-thin text-xl mr-2 mb-0.5">|</span>
                <Search className="w-4 h-4 text-white/90" />
             </button>

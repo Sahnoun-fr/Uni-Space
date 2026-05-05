@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { School, ArrowLeft, Bell, Lock, Eye, Palette, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { 
+  School, ArrowLeft, Bell, Lock, Eye, Palette, CheckCircle2, 
+  Moon, Sun, User, History, Settings as SettingsIcon, Building2, LogOut 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
@@ -9,6 +12,8 @@ export default function Settings() {
   const [availabilityAlerts, setAvailabilityAlerts] = useState(true);
   const [systemUpdates, setSystemUpdates] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [userName, setUserName] = useState('User Name');
 
   useEffect(() => {
     try {
@@ -20,6 +25,8 @@ export default function Settings() {
       else if (globalNotifs !== null) setBookingReminders(JSON.parse(globalNotifs));
       if (aa !== null) setAvailabilityAlerts(JSON.parse(aa));
       if (su !== null) setSystemUpdates(JSON.parse(su));
+      const savedUser = JSON.parse(localStorage.getItem('user'));
+      if (savedUser?.name) setUserName(savedUser.name);
     } catch (e) {}
   }, []);
 
@@ -57,20 +64,60 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
-      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[4px] z-0" />
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
 
       {/* Top Navbar */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
-          <School className="w-10 h-10 text-white drop-shadow-md" />
-          <span className="text-3xl font-bold tracking-wide text-white drop-shadow-md">UniSpace</span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
+            <School className="w-10 h-10 text-white drop-shadow-md" />
+            <span className="text-3xl font-bold tracking-wide text-white drop-shadow-md">UniSpace</span>
+          </div>
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors bg-white/10 px-4 py-2 rounded-full border border-white/20"
+          >
+            <ArrowLeft className="w-5 h-5" /> Back
+          </button>
         </div>
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors bg-white/10 px-4 py-2 rounded-full border border-white/20"
-        >
-          <ArrowLeft className="w-5 h-5" /> Back
-        </button>
+
+        <div className="flex items-center gap-6 relative">
+          <button
+            onClick={toggleBookingReminders}
+            className={`p-2 rounded-full transition-colors ${bookingReminders ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300'}`}
+            title={bookingReminders ? 'Notifications on' : 'Notifications off'}
+          >
+            <Bell className="w-6 h-6 drop-shadow-md" />
+          </button>
+          
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShowDropdown(!showDropdown)}>
+            <span className="text-white font-medium text-lg drop-shadow-md">{userName}</span>
+            <div className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center text-white bg-white/10 backdrop-blur-sm">
+              <User className="w-6 h-6" />
+            </div>
+          </div>
+
+          {showDropdown && (
+            <div className="absolute top-[3.5rem] right-0 w-[240px] bg-[#F8FAFC] rounded-2xl shadow-2xl py-4 z-50 overflow-hidden transform origin-top-right transition-all">
+              <button onClick={() => { setShowDropdown(false); navigate('/profile'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <User className="w-5 h-5 opacity-70" /> Profile
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/history'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <History className="w-5 h-5 opacity-70" /> My History
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/settings'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <SettingsIcon className="w-5 h-5 opacity-70" /> Settings
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/interactive-maps'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
+              </button>
+              <div className="h-px bg-slate-200 my-2 mx-4"></div>
+              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+                <LogOut className="w-5 h-5" /> LOGOUT
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="relative z-10 flex-1 flex flex-col px-8 w-full max-w-[1200px] mx-auto pt-8 pb-12">

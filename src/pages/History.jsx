@@ -1,9 +1,32 @@
-import React from 'react';
-import { School, UserCircle, Search, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  School, UserCircle, Search, ChevronLeft, ChevronRight, CheckCircle2, 
+  AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function History() {
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [notifsOn, setNotifsOn] = useState(true);
+  const [userName, setUserName] = useState('User Name');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('notifsOn');
+      if (stored !== null) setNotifsOn(JSON.parse(stored));
+    } catch (e) {}
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('user'));
+      if (savedUser?.name) setUserName(savedUser.name);
+    } catch (e) {}
+  }, []);
+
+  const toggleNotifs = () => {
+    const next = !notifsOn;
+    setNotifsOn(next);
+    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (e) {}
+  };
 
   const reservations = [
     { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Confirmed' },
@@ -23,35 +46,65 @@ export default function History() {
   };
 
   return (
-    <div 
-      className="min-h-screen font-sans bg-cover bg-center flex flex-col relative"
-      style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop")' }}
-    >
-      {/* Overlay to match the blueish tint from the image */}
-      <div className="absolute inset-0 bg-[#3b5998]/60 backdrop-blur-sm pointer-events-none"></div>
+    <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
+
+      {/* Top Navbar */}
+      <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
+            <School className="w-10 h-10 text-white drop-shadow-md" />
+            <span className="text-3xl font-bold tracking-wide text-white drop-shadow-md">UniSpace</span>
+          </div>
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors bg-white/10 px-4 py-2 rounded-full border border-white/20"
+          >
+            <ArrowLeft className="w-5 h-5" /> Back
+          </button>
+        </div>
+
+        <div className="flex items-center gap-6 relative">
+          <button
+            onClick={toggleNotifs}
+            className={`p-2 rounded-full transition-colors ${notifsOn ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300'}`}
+            title={notifsOn ? 'Notifications on' : 'Notifications off'}
+          >
+            <Bell className="w-6 h-6 drop-shadow-md" />
+          </button>
+          
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShowDropdown(!showDropdown)}>
+            <span className="text-white font-medium text-lg drop-shadow-md">{userName}</span>
+            <div className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center text-white bg-white/10 backdrop-blur-sm">
+              <User className="w-6 h-6" />
+            </div>
+          </div>
+
+          {showDropdown && (
+            <div className="absolute top-[3.5rem] right-0 w-[240px] bg-[#F8FAFC] rounded-2xl shadow-2xl py-4 z-50 overflow-hidden transform origin-top-right transition-all">
+              <button onClick={() => { setShowDropdown(false); navigate('/profile'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <User className="w-5 h-5 opacity-70" /> Profile
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/history'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <HistoryIcon className="w-5 h-5 opacity-70" /> My History
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/settings'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <Settings className="w-5 h-5 opacity-70" /> Settings
+              </button>
+              <button onClick={() => { setShowDropdown(false); navigate('/interactive-maps'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-[#4B6185] hover:bg-slate-100 transition-colors font-semibold">
+                <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
+              </button>
+              <div className="h-px bg-slate-200 my-2 mx-4"></div>
+              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+                <LogOut className="w-5 h-5" /> LOGOUT
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
 
       {/* Main Content Container - ensuring it sits above the background overlay */}
-      <div className="relative z-10 flex flex-col h-full flex-1 p-6 md:p-8">
-        
-        {/* Top Navigation Bar */}
-        <header className="flex items-center justify-between mb-10">
-          {/* Logo - clickable to go to dashboard */}
-          <div 
-            className="flex items-center gap-3 cursor-pointer group"
-            onClick={() => navigate('/dashboard')}
-          >
-            <div className="text-white group-hover:scale-105 transition-transform">
-              <School className="w-8 h-8" />
-            </div>
-            <span className="text-white text-2xl font-bold tracking-wide">UniSpace</span>
-          </div>
-
-          {/* User Profile */}
-          <div className="flex items-center gap-3 bg-white rounded-full pl-6 pr-1 py-1 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-            <span className="text-sm font-semibold text-[#475569] uppercase tracking-wider">NAME</span>
-            <UserCircle className="w-8 h-8 text-[#94a3b8]" />
-          </div>
-        </header>
+      <div className="relative z-10 flex flex-col h-full flex-1 px-6 md:px-8 pb-6 md:pb-8">
 
         {/* Page Header */}
         <div className="mb-8">

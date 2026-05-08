@@ -227,6 +227,15 @@ const Login = () => {
               </div>
 
               <div className="flex justify-center">
+                <Link 
+                  to="/admin-login"
+                  className="text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-[0.2em] border border-white/20 px-6 py-2 rounded-full hover:bg-white/10"
+                >
+                  Are you Admin?
+                </Link>
+              </div>
+
+              <div className="flex justify-center">
                 <button 
                   onClick={handleGoogleLogin}
                   className="bg-white/90 hover:bg-white text-[#67a8ff] font-semibold py-2.5 px-6 rounded-lg transition-colors text-sm w-full sm:w-auto shadow-md"
@@ -248,7 +257,7 @@ const Login = () => {
             </div>
             <div className="flex flex-col gap-2 uppercase tracking-wider">
               <a href="#" className="hover:text-white transition-colors">Help Center</a>
-              <a href="#" className="hover:text-white transition-colors">FAQs</a>
+              <Link to="/admin-login" className="hover:text-emerald-400 transition-colors text-emerald-500/80">Admin Access</Link>
             </div>
           </div>
 

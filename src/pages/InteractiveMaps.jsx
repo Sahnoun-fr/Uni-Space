@@ -60,6 +60,16 @@ export default function Maps() {
     setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const [selectedMap, setSelectedMap] = useState('rasa');
+
+  const maps = {
+    rasa: { name: "Rasa Map", url: "/maps/0 floor.png", description: "RASA Club's Local & Ground Floor" },
+    first_left: { name: "1st Floor (Left)", url: "/maps/1 st floor left (club's spots).jpeg", description: "1st Floor Left - Club Spots & Labs" },
+    first_right: { name: "1st Floor (Right)", url: "/maps/1st floor right.png", description: "1st Floor Right - Classrooms" },
+    second: { name: "Second Floor", url: "/maps/2nd floor.png", description: "2nd Floor - Admin & Library" },
+    third: { name: "Third Floor", url: "/maps/3rd Floor.png", description: "3rd Floor - Study Halls" }
+  };
+
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
       <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
@@ -148,7 +158,7 @@ export default function Maps() {
           <main className="flex-1 p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto w-full">
             
             {/* Map Card */}
-            <div className="bg-white rounded-[1.5rem] p-4 lg:p-6 shadow-md flex flex-col min-h-[400px]">
+            <div className="bg-white rounded-[1.5rem] p-4 lg:p-6 shadow-md flex flex-col min-h-[500px]">
               
               {/* Search Toolbar */}
               <div className="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
@@ -160,57 +170,57 @@ export default function Maps() {
                   />
                 </div>
                 
-                <div className="flex gap-2 shrink-0">
-                  <button className="px-3 lg:px-4 py-1.5 bg-blue-50 rounded-full text-xs font-semibold text-blue-600 border border-blue-100">Silent Study</button>
-                  <button className="px-3 lg:px-4 py-1.5 bg-slate-100 hover:bg-slate-200 transition-colors rounded-full text-xs font-semibold text-slate-600">Group Work</button>
-                  <button className="px-3 lg:px-4 py-1.5 bg-slate-100 hover:bg-slate-200 transition-colors rounded-full text-xs font-semibold text-slate-600">Outlets</button>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <button 
+                    onClick={() => setSelectedMap('rasa')}
+                    className={`px-3 lg:px-4 py-1.5 rounded-full text-[10px] font-semibold transition-all ${selectedMap === 'rasa' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'}`}
+                  >
+                    Rasa
+                  </button>
+                  <button 
+                    onClick={() => setSelectedMap('first_left')}
+                    className={`px-3 lg:px-4 py-1.5 rounded-full text-[10px] font-semibold transition-all ${selectedMap === 'first_left' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    1st Floor (L)
+                  </button>
+                  <button 
+                    onClick={() => setSelectedMap('first_right')}
+                    className={`px-3 lg:px-4 py-1.5 rounded-full text-[10px] font-semibold transition-all ${selectedMap === 'first_right' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    1st Floor (R)
+                  </button>
+                  <button 
+                    onClick={() => setSelectedMap('second')}
+                    className={`px-3 lg:px-4 py-1.5 rounded-full text-[10px] font-semibold transition-all ${selectedMap === 'second' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    2nd Floor
+                  </button>
+                  <button 
+                    onClick={() => setSelectedMap('third')}
+                    className={`px-3 lg:px-4 py-1.5 rounded-full text-[10px] font-semibold transition-all ${selectedMap === 'third' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    3rd Floor
+                  </button>
                 </div>
               </div>
 
-              {/* Map Canvas Placeholder */}
-              <div className="flex-1 bg-[#F1F5F9] rounded-2xl relative overflow-hidden p-6 min-h-[280px]">
-                 
-                 {/* Decorative layout simulating building walls */}
-                 <div className="absolute inset-8 border-[16px] border-white rounded-xl flex gap-4 p-4 opacity-100 backdrop-blur-sm">
-                    <div className="w-[35%] flex flex-col gap-4">
-                       <div className="h-1/5 border-[16px] border-white rounded-xl bg-[#E6EBEF] relative">
-                          <span className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
-                       </div>
-                       <div className="h-1/5 border-[16px] border-white rounded-xl bg-[#E6EBEF] relative">
-                          <span className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-orange-400 rounded-full"></span>
-                       </div>
-                       <div className="flex-1 border-[16px] border-white rounded-xl bg-[#E6EBEF] relative">
-                          <span className="absolute top-1/2 left-[40%] -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                       </div>
-                    </div>
-                    <div className="w-[35%] border-[16px] border-white rounded-xl bg-[#E6EBEF] relative flex flex-col">
-                       <span className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                    </div>
-                    <div className="w-[30%] flex flex-col gap-4">
-                       <div className="h-[40%] border-[16px] border-white rounded-xl bg-[#E6EBEF] relative">
-                          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                       </div>
-                       <div className="h-[15%] border-[16px] border-white rounded-xl bg-[#E6EBEF]"></div>
-                       <div className="h-[15%] border-[16px] border-white rounded-xl bg-[#E6EBEF]"></div>
-                       <div className="flex-1 border-[16px] border-b-0 border-white rounded-t-xl bg-[#E6EBEF]"></div>
-                    </div>
-                 </div>
-
-                 {/* Corridors overlays to simulate hallways */}
-                 <div className="absolute top-[40%] left-[30%] right-[20%] h-12 bg-[#F1F5F9] z-10"></div>
-                 <div className="absolute top-0 bottom-0 left-[35%] w-12 bg-[#F1F5F9] z-10"></div>
-                 <div className="absolute top-[60%] left-0 right-[40%] h-12 bg-[#F1F5F9] z-10"></div>
-                 <div className="absolute top-[30%] right-0 left-[60%] h-12 bg-[#F1F5F9] z-10"></div>
-
-                 <div className="absolute bottom-4 left-4 bg-white shadow-sm rounded-full px-4 py-2 text-[11px] font-bold text-slate-700 flex items-center gap-3 z-20">
+              {/* Map Canvas */}
+              <div className="flex-1 bg-[#F8FAFC] rounded-2xl relative overflow-hidden flex flex-col items-center justify-center border border-slate-100 min-h-[350px]">
+                  <img 
+                    src={maps[selectedMap].url} 
+                    alt={maps[selectedMap].name}
+                    className="max-w-full max-h-full object-contain p-4 drop-shadow-xl animate-in fade-in zoom-in duration-500"
+                  />
+                  
+                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur shadow-sm rounded-full px-4 py-2 text-[11px] font-bold text-slate-700 flex items-center gap-3 z-20 border border-slate-200">
                     <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500"></div> Calm</span>
                     <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div> Medium</span>
                     <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Crowded</span>
-                 </div>
+                  </div>
 
-                 <div className="absolute bottom-0 right-0 bg-white shadow-sm rounded-tl-xl px-5 py-3 text-[13px] font-bold text-slate-700 z-20">
-                    RASA Club's Local
-                 </div>
+                  <div className="absolute bottom-0 right-0 bg-blue-600 shadow-xl rounded-tl-2xl px-6 py-3 text-[13px] font-bold text-white z-20">
+                    {maps[selectedMap].description}
+                  </div>
               </div>
 
             </div>

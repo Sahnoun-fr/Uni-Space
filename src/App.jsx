@@ -13,6 +13,9 @@ import Profile from "./pages/ProfileNew.jsx";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+
 function App() {
   return (
     <BrowserRouter>
@@ -20,6 +23,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/service" element={<Service />} />
         <Route path="/contact" element={<Contact />} />

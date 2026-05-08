@@ -202,10 +202,16 @@ const UniSpacePortal = () => {
                 Rasa Map
               </button>
               <button 
-                onClick={() => setActiveMap('1st')}
-                className={`w-full py-4 rounded-full transition-colors font-bold text-[15px] shadow-sm ${activeMap === '1st' ? 'bg-[#D9EAF9] text-[#2c5275]' : 'bg-[#EBF4FC] text-[#4A79A5] hover:bg-[#D9EAF9]'}`}
+                onClick={() => setActiveMap('1st_left')}
+                className={`w-full py-4 rounded-full transition-colors font-bold text-[15px] shadow-sm ${activeMap === '1st_left' ? 'bg-[#D9EAF9] text-[#2c5275]' : 'bg-[#EBF4FC] text-[#4A79A5] hover:bg-[#D9EAF9]'}`}
               >
-                1st Floor Map
+                1st Floor (Left)
+              </button>
+              <button 
+                onClick={() => setActiveMap('1st_right')}
+                className={`w-full py-4 rounded-full transition-colors font-bold text-[15px] shadow-sm ${activeMap === '1st_right' ? 'bg-[#D9EAF9] text-[#2c5275]' : 'bg-[#EBF4FC] text-[#4A79A5] hover:bg-[#D9EAF9]'}`}
+              >
+                1st Floor (Right)
               </button>
               <button 
                 onClick={() => setActiveMap('2nd')}
@@ -224,17 +230,12 @@ const UniSpacePortal = () => {
         </div>
 
         {/* Map Image Viewer */}
-        <div className="flex-1 bg-[#222222] rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-2 relative overflow-hidden min-h-[400px] flex items-center justify-center">
-           {activeMap === '3rd' ? (
-              <ThirdFloorMap />
-           ) : (
-             <img 
-                src="/real.png" 
-                alt="Campus Map" 
-                className="w-full h-full object-cover rounded-[1.5rem] transition-transform duration-700 hover:scale-[1.02]"
-                onError={(e) => { e.currentTarget.src = '/background.png' }} 
-             />
-           )}
+        <div className="flex-1 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 relative overflow-hidden min-h-[500px] flex items-center justify-center">
+           {activeMap === 'rasa' && <img src="/maps/0 floor.png" className="max-w-full max-h-full object-contain animate-in fade-in duration-500" alt="Rasa Map" />}
+           {activeMap === '1st_left' && <img src="/maps/1 st floor left (club's spots).jpeg" className="max-w-full max-h-full object-contain animate-in fade-in duration-500" alt="1st Floor Left" />}
+           {activeMap === '1st_right' && <img src="/maps/1st floor right.png" className="max-w-full max-h-full object-contain animate-in fade-in duration-500" alt="1st Floor Right" />}
+           {activeMap === '2nd' && <img src="/maps/2nd floor.png" className="max-w-full max-h-full object-contain animate-in fade-in duration-500" alt="2nd Floor" />}
+           {activeMap === '3rd' && <img src="/maps/3rd Floor.png" className="max-w-full max-h-full object-contain animate-in fade-in duration-500" alt="3rd Floor" />}
         </div>
       </div>
 

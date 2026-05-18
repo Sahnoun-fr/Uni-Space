@@ -14,7 +14,12 @@ import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 import AdminLogin from "./pages/AdminLogin";
+import AdminLayout from "./components/AdminLayout";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUserManagement from "./pages/AdminUserManagement";
+import AdminMapEditor from "./pages/AdminMapEditor";
+import AdminNotifications from "./pages/AdminNotifications";
+import AdminSettings from "./pages/AdminSettings";
 
 function App() {
   return (
@@ -23,8 +28,6 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/service" element={<Service />} />
         <Route path="/contact" element={<Contact />} />
@@ -34,6 +37,18 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/history" element={<History />} />
         
+        {/* Admin Login Route */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+
+        {/* Admin Layout Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUserManagement />} />
+          <Route path="maps" element={<AdminMapEditor />} />
+          <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+
         {/* 404 page */}
         <Route path="*" element={<NotFound />} />
       </Routes>

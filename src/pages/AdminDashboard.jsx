@@ -1,5 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Map as MapIcon, TrendingUp, ShieldCheck, ArrowUpRight, ArrowDownRight, MoreHorizontal } from 'lucide-react';
+import ThirdFloorMap from '../components/ThirdFloorMap';
 
 const AdminDashboard = () => {
   const stats = [
@@ -50,12 +52,13 @@ const AdminDashboard = () => {
         <div className="lg:col-span-2 bg-white rounded-3xl p-8 border border-slate-200 shadow-sm min-h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold text-slate-900">Real-time Occupancy</h3>
-            <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
+            <Link to="/admin/maps" className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold py-2 px-4 rounded-xl transition-all flex items-center gap-2 text-sm">
+              <MapIcon className="w-4 h-4" />
+              All Maps
+            </Link>
           </div>
-          <div className="flex-1 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 font-medium italic">
-            Occupancy analytics visualization will be placed here
+          <div className="flex-1 rounded-2xl overflow-hidden shadow-inner border border-slate-200 relative">
+            <ThirdFloorMap />
           </div>
         </div>
 

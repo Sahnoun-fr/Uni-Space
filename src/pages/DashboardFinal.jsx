@@ -31,6 +31,7 @@ export default function Dashboard() {
     }
 
     const loadBookingState = async () => {
+      if (!supabase) return;
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
 

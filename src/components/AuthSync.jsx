@@ -20,6 +20,10 @@ const syncUserToStorage = (session) => {
 
 const AuthSync = () => {
   useEffect(() => {
+    if (!supabase) {
+      console.warn('Supabase is not configured. AuthSync is disabled.');
+      return;
+    }
     let isMounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -43,7 +47,7 @@ const AuthSync = () => {
 
     return () => {
       isMounted = false;
-      listener.subscription.unsubscribe();
+      listener?.subscription?.unsubscribe();
     };
   }, []);
 

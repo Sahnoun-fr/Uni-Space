@@ -24,6 +24,7 @@ const AdminDashboard = () => {
     let isActive = true;
 
     const loadStats = async () => {
+      if (!supabase) return;
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
 

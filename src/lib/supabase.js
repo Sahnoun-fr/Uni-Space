@@ -83,13 +83,28 @@ export const createSeatBooking = async ({ seatId, floor, startTime, endTime, sta
     throw new Error('Supabase is not configured.');
   }
 
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  // Use getSession() to ensure we have a live, valid JWT — getUser() alone can return
+  // a stale/cached user whose token is no longer accepted by the DB (e.g. after project reset).
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-  if (authError) {
-    throw authError;
+  if (sessionError) {
+    throw sessionError;
   }
 
-  const user = authData.user;
+  const session = sessionData?.session;
+  if (!session) {
+    throw new Error('Your session has expired. Please sign out and sign back in.');
+  }
+
+  // Proactively refresh the token so the JWT sent in the Authorization header
+  // is always fresh — a stale/expired token causes auth.uid() to return null in the DB,
+  // which silently fails the RLS with_check even if the policy looks correct.
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    throw new Error('Session refresh failed. Please sign out and sign back in.');
+  }
+
+  const user = (refreshed?.session?.user) || session.user;
   if (!user) {
     throw new Error('You must be signed in to create a booking.');
   }

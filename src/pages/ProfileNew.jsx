@@ -1,31 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  School, ArrowLeft, User, Mail, IdCard, BookOpen, Award, 
+  School, ArrowLeft, User, Mail, 
   Clock, Camera, Bell, History, Settings, Building2, LogOut 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, getUserProfile, getUserBookings } from '../lib/supabase';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
+  const [userEmail, setUserEmail] = useState('username@estin.dz');
+  const [balanceCredits, setBalanceCredits] = useState(null);
+  const [recentBookings, setRecentBookings] = useState([]);
 
   useEffect(() => {
+    let isActive = true;
+
     try {
       const stored = localStorage.getItem('notifsOn');
       if (stored !== null) setNotifsOn(JSON.parse(stored));
-    } catch (e) {}
-    try {
-      const savedUser = JSON.parse(localStorage.getItem('user'));
-      if (savedUser?.name) setUserName(savedUser.name);
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load notification preference', error);
+    }
+
+    const loadProfile = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (!user || !isActive) return;
+
+      try {
+        const profile = await getUserProfile(user.id);
+        if (isActive) {
+          setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
+          setUserEmail(profile?.email || user.email || 'username@estin.dz');
+          setBalanceCredits(profile?.balance_credits ?? null);
+        }
+      } catch (error) {
+        console.error('Unable to load profile data', error);
+      }
+
+      try {
+        const bookings = await getUserBookings(user.id, 2);
+        if (isActive) {
+          setRecentBookings(bookings);
+        }
+      } catch (error) {
+        console.error('Unable to load recent bookings', error);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const toggleNotifs = () => {
     const next = !notifsOn;
     setNotifsOn(next);
-    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (error) {
+      console.error('Unable to persist notification preference', error);
+    }
   };
 
   return (
@@ -78,7 +117,7 @@ export default function Profile() {
                 <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
               </button>
               <div className="h-px bg-slate-200 my-2 mx-4"></div>
-              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+              <button onClick={() => { supabase.auth.signOut().finally(() => { try { localStorage.removeItem('user'); } catch (error) { console.error('Unable to clear saved user', error); } setShowDropdown(false); navigate('/'); }); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
                 <LogOut className="w-5 h-5" /> LOGOUT
               </button>
             </div>
@@ -106,44 +145,20 @@ export default function Profile() {
           <div className="pt-20 px-12 pb-12">
             <div className="flex flex-col sm:flex-row justify-between items-start mb-10">
               <div>
-                <h1 className="text-4xl font-bold text-[#1E293B] mb-2">User Name</h1>
+                <h1 className="text-4xl font-bold text-[#1E293B] mb-2">{userName}</h1>
                 <p className="text-lg text-[#64748B] font-medium flex items-center gap-2">
-                  <Mail className="w-5 h-5" /> username@estin.dz
+                  <Mail className="w-5 h-5" /> {userEmail}
+                </p>
+                <p className="text-sm font-bold text-[#3B82F6] mt-3">
+                  Booking balance: {balanceCredits ?? '--'} credits
                 </p>
               </div>
-              <button className="mt-4 sm:mt-0 bg-[#3B82F6] hover:bg-[#2563EB] text-white px-6 py-2.5 rounded-full font-bold shadow-md transition-colors border border-blue-400">
-                Edit Profile
-              </button>
+             
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
-                <div className="p-3 bg-indigo-50 rounded-xl text-indigo-500">
-                  <IdCard className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Student ID</p>
-                  <p className="text-[#334155] font-bold">EST-2024-089</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
-                <div className="p-3 bg-emerald-50 rounded-xl text-emerald-500">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Major</p>
-                  <p className="text-[#334155] font-bold">Computer Science</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
-                <div className="p-3 bg-amber-50 rounded-xl text-amber-500">
-                  <Award className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
-                  <p className="text-[#334155] font-bold">Active Student</p>
-                </div>
-              </div>
+             
+              
             </div>
 
             <div>
@@ -151,31 +166,23 @@ export default function Profile() {
                 <Clock className="w-6 h-6 text-blue-500" /> Recent Activity Highlights
               </h2>
               <div className="bg-white rounded-2xl border border-slate-100 p-2 shadow-sm">
-                <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                      <School className="w-5 h-5" />
+                {(recentBookings.length > 0 ? recentBookings : [
+                  { seat_id: '12-B04', floor: 'Quiet Zone', created_at: new Date().toISOString(), status: 'confirmed' },
+                  { seat_id: 'A1', floor: 'Group Room', created_at: new Date().toISOString(), status: 'confirmed' },
+                ]).map((booking) => (
+                  <div key={`${booking.seat_id}-${booking.created_at}`} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                        <School className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#334155]">Booked Seat {booking.seat_id} in {booking.floor}</p>
+                        <p className="text-sm text-slate-500">{new Date(booking.created_at).toLocaleString()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-[#334155]">Booked Seat 12-B04 in Quiet Zone</p>
-                      <p className="text-sm text-slate-500">Today, 12:00 PM</p>
-                    </div>
+                    <span className="text-sm font-bold text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full">{booking.status}</span>
                   </div>
-                  <span className="text-sm font-bold text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full">Completed</span>
-                </div>
-                <div className="h-px bg-slate-100 mx-4"></div>
-                <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                      <School className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#334155]">Booked Group Room A1</p>
-                      <p className="text-sm text-slate-500">Yesterday, 14:00 PM</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full">Completed</span>
-                </div>
+                ))}
               </div>
             </div>
 

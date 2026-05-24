@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect } from 'react';
 import { 
   School, Search, Heart, Wifi, Plug, Thermometer, Volume2, 
   CheckSquare, Square, User, History, Settings, Building2, LogOut, Bell, ArrowLeft
@@ -8,6 +9,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { supabase, getUserProfile, createSeatBooking } from '../lib/supabase';
 
 const barData = [
   { name: 'Silent Zone', Free: 4, Soon: 7, Occupied: 0 },
@@ -29,22 +31,55 @@ export default function Maps() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
+  const [balanceCredits, setBalanceCredits] = useState(null);
+  const [bookingState, setBookingState] = useState({ loading: false, message: '' });
 
   useEffect(() => {
+    let isActive = true;
+
     try {
       const stored = localStorage.getItem('notifsOn');
       if (stored !== null) setNotifsOn(JSON.parse(stored));
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load notification preference', error);
+    }
     try {
       const savedUser = JSON.parse(localStorage.getItem('user'));
       if (savedUser?.name) setUserName(savedUser.name);
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load saved user', error);
+    }
+
+    const loadUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (!user || !isActive) return;
+
+      try {
+        const profile = await getUserProfile(user.id);
+        if (isActive) {
+          setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
+          setBalanceCredits(profile?.balance_credits ?? null);
+        }
+      } catch (error) {
+        console.error('Unable to load map profile', error);
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const toggleNotifs = () => {
     const next = !notifsOn;
     setNotifsOn(next);
-    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (error) {
+      console.error('Unable to persist notification preference', error);
+    }
   };
 
   const [filters, setFilters] = useState({
@@ -63,11 +98,11 @@ export default function Maps() {
   const [selectedMap, setSelectedMap] = useState('rasa');
 
   const maps = {
-    rasa: { name: "Rasa Map", url: "/maps/0 floor.png", description: "RASA Club's Local & Ground Floor" },
-    first_left: { name: "1st Floor (Left)", url: "/maps/1 st floor left (club's spots).jpeg", description: "1st Floor Left - Club Spots & Labs" },
-    first_right: { name: "1st Floor (Right)", url: "/maps/1st floor right.png", description: "1st Floor Right - Classrooms" },
-    second: { name: "Second Floor", url: "/maps/2nd floor.png", description: "2nd Floor - Admin & Library" },
-    third: { name: "Third Floor", url: "/maps/3rd Floor.png", description: "3rd Floor - Study Halls" }
+    rasa: { name: "Rasa Map", url: "/maps/0 floor.png", description: "RASA Club's Local & Ground Floor", seatName: "Seat R-12", seatDesc: "Located in the Rasa Club area, perfect for group discussions." },
+    first_left: { name: "1st Floor (Left)", url: "/maps/1 st floor left (club's spots).jpeg", description: "1st Floor Left - Club Spots & Labs", seatName: "Seat 1L-A1", seatDesc: "Located near the labs with easy access to power outlets." },
+    first_right: { name: "1st Floor (Right)", url: "/maps/1st floor right.png", description: "1st Floor Right - Classrooms", seatName: "Seat 1R-C3", seatDesc: "Quiet spot near the classrooms with a great view." },
+    second: { name: "Second Floor", url: "/maps/2nd floor.png", description: "2nd Floor - Admin & Library", seatName: "Seat 2-L09", seatDesc: "Located in the library section, ideal for focused silent study." },
+    third: { name: "Third Floor", url: "/maps/3rd Floor.png", description: "3rd Floor - Study Halls", seatName: "Seat 3-S22", seatDesc: "Spacious desk in the 3rd floor study hall." }
   };
 
   return (
@@ -120,7 +155,7 @@ export default function Maps() {
                 <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
               </button>
               <div className="h-px bg-slate-200 my-2 mx-4"></div>
-              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+              <button onClick={() => { supabase.auth.signOut().finally(() => { try { localStorage.removeItem('user'); } catch (error) { console.error('Unable to clear saved user', error); } setShowDropdown(false); navigate('/'); }); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
                 <LogOut className="w-5 h-5" /> LOGOUT
               </button>
             </div>
@@ -296,14 +331,21 @@ export default function Maps() {
                 </div>
                 
                 <div className="flex justify-between items-start mb-3">
-                   <h2 className="text-2xl font-bold text-[#354868] leading-tight drop-shadow-sm">Seat 12-<br/>B04</h2>
+                   <h2 className="text-2xl font-bold text-[#354868] leading-tight drop-shadow-sm whitespace-pre-line">
+                     {maps[selectedMap].seatName.replace('-', '-\n')}
+                   </h2>
                    <button className="text-[#354868] hover:text-red-500 transition-colors p-1">
                       <Heart className="w-6 h-6" strokeWidth={1.5} />
                    </button>
                 </div>
 
+                 <div className="flex items-center justify-between mb-6 text-[#354868]">
+                   <span className="text-[11px] font-bold uppercase tracking-widest">Balance</span>
+                   <span className="text-sm font-extrabold">{balanceCredits ?? '--'} bookings</span>
+                 </div>
+
                 <p className="text-[13px] font-semibold text-[#48638C] mb-8 leading-relaxed pr-2">
-                   Located in the first floor with views of the central courtyard.
+                   {maps[selectedMap].seatDesc}
                 </p>
 
                 <div className="flex flex-col gap-5">
@@ -335,9 +377,35 @@ export default function Maps() {
              </div>
 
              <div className="mt-auto p-5 text-center">
-                <button className="w-full py-3.5 bg-[#D5F5EC] hover:bg-[#AEEBDB] text-[#2F7E6B] font-bold flex items-center justify-center rounded-[12px] text-[13px] tracking-wide transition-all shadow-sm">
+                <button
+                  onClick={async () => {
+                    setBookingState({ loading: true, message: '' });
+                    try {
+                      const booking = await createSeatBooking({
+                        seatId: maps[selectedMap].seatName,
+                        floor: maps[selectedMap].name,
+                        startTime: new Date().toISOString(),
+                        endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                      });
+                      setBookingState({ loading: false, message: `Booked ${booking.seat_id} successfully.` });
+                      const profile = await getUserProfile((await supabase.auth.getUser()).data.user.id);
+                      setBalanceCredits(profile?.balance_credits ?? null);
+                    } catch (error) {
+                      setBookingState({ loading: false, message: error.message || 'Unable to create booking.' });
+                    }
+                  }}
+                  disabled={bookingState.loading}
+                  className="w-full py-3.5 bg-[#D5F5EC] hover:bg-[#AEEBDB] disabled:opacity-60 text-[#2F7E6B] font-bold flex items-center justify-center rounded-[12px] text-[13px] tracking-wide transition-all shadow-sm"
+                >
+                   {bookingState.loading ? 'Booking...' : `Reserve ${maps[selectedMap].seatName}`}
+                </button>
+                <button 
+                  onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSeTNgvu_0stHw2TEdul-0D60YP8u86t7RvwRaEPNqKq549k2g/viewform?usp=publish-editor', '_blank', 'noopener,noreferrer')}
+                  className="w-full mt-3 py-3.5 bg-white/70 hover:bg-white text-[#2F7E6B] font-bold flex items-center justify-center rounded-[12px] text-[13px] tracking-wide transition-all shadow-sm"
+                >
                    Report An Issue
                 </button>
+                {bookingState.message ? <p className="text-[11px] font-semibold text-[#354868] mt-3">{bookingState.message}</p> : null}
              </div>
           </aside>
 

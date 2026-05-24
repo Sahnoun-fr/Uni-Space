@@ -1,41 +1,163 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  School, UserCircle, Search, ChevronLeft, ChevronRight, CheckCircle2, 
+  School, Search, ChevronLeft, ChevronRight, CheckCircle2, 
   AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, getUserProfile, getUserBookings } from '../lib/supabase';
+
+/**
+ * @typedef {Object} ReservationItem
+ * @property {string} id
+ * @property {string} floor
+ * @property {string} date
+ * @property {string} status
+ * @property {string} startTime
+ * @property {string} endTime
+ * @property {string} createdAt
+ */
 
 export default function History() {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
+  /** @type {Array<ReservationItem>} */
+  const initialReservations = [];
+  const [reservations, setReservations] = useState(initialReservations);
+  const [loading, setLoading] = useState(true);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  /** @param {Date} leftDate @param {Date} rightDate */
+  const sameDay = (leftDate, rightDate) =>
+    leftDate.getFullYear() === rightDate.getFullYear() &&
+    leftDate.getMonth() === rightDate.getMonth() &&
+    leftDate.getDate() === rightDate.getDate();
+
+  /** @param {Date} date @param {Date} referenceDate */
+  const withinLast7Days = (date, referenceDate) => {
+    const differenceMs = referenceDate.getTime() - date.getTime();
+    return differenceMs >= 0 && differenceMs <= 7 * 24 * 60 * 60 * 1000;
+  };
+
+  /** @param {string} startTime @param {string} endTime */
+  const formatDateTime = (startTime, endTime) => {
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    return `${startDate.toLocaleDateString()}\n${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  /** @param {string | null | undefined} status */
+  const normalizeStatus = (status) => {
+    const value = (status || 'confirmed').toLowerCase();
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
 
   useEffect(() => {
+    let isActive = true;
+
     try {
       const stored = localStorage.getItem('notifsOn');
       if (stored !== null) setNotifsOn(JSON.parse(stored));
-    } catch (e) {}
-    try {
-      const savedUser = JSON.parse(localStorage.getItem('user'));
-      if (savedUser?.name) setUserName(savedUser.name);
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load notification preference', error);
+    }
+
+    const loadHistory = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (!user || !isActive) {
+        if (isActive) setLoading(false);
+        return;
+      }
+
+      try {
+        const profile = await getUserProfile(user.id);
+        if (isActive) {
+          setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
+        }
+      } catch (error) {
+        console.error('Unable to load profile name', error);
+      }
+
+      try {
+        const bookings = await getUserBookings(user.id, 50);
+        if (isActive) {
+          setReservations(bookings.map((booking) => ({
+            id: booking.seat_id,
+            floor: booking.floor,
+            startTime: booking.start_time,
+            endTime: booking.end_time,
+            createdAt: booking.created_at,
+            date: formatDateTime(booking.start_time, booking.end_time),
+            status: normalizeStatus(booking.status),
+          })));
+        }
+      } catch (error) {
+        console.error('Unable to load booking history', error);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    loadHistory();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const toggleNotifs = () => {
     const next = !notifsOn;
     setNotifsOn(next);
-    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (error) {
+      console.error('Unable to persist notification preference', error);
+    }
   };
 
-  const reservations = [
-    { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Confirmed' },
-    { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Cancelled' },
-    { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Expired' },
-    { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Confirmed' },
-    { id: 'A-204', floor: 'Level 2,\nNorth Wing', date: 'Oct 22, 2023\n02:00 PM - 05:00 PM', status: 'Confirmed' },
-  ];
+  const handleLogout = () => {
+    if (!supabase) {
+      setShowDropdown(false);
+      navigate('/');
+      return;
+    }
 
+    supabase.auth.signOut().finally(() => {
+      try { localStorage.removeItem('user'); } catch (error) { console.error('Unable to clear saved user', error); }
+      setShowDropdown(false);
+      navigate('/');
+    });
+  };
+
+  const reservationsToShow = reservations.filter((reservation) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [reservation.id, reservation.floor, reservation.status].join(' ').toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+
+    const startDate = new Date(reservation.startTime);
+    const today = new Date();
+
+    if (timeFilter === 'today') {
+      return sameDay(startDate, today);
+    }
+
+    if (timeFilter === 'week') {
+      return withinLast7Days(startDate, today);
+    }
+
+    return true;
+  });
+
+  /** @param {string} status */
   const getStatusColor = (status) => {
     switch (status) {
       case 'Confirmed': return 'bg-[#dcfce7] text-[#166534]'; // Emerald 100/800
@@ -95,7 +217,7 @@ export default function History() {
                 <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
               </button>
               <div className="h-px bg-slate-200 my-2 mx-4"></div>
-              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+              <button onClick={handleLogout} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
                 <LogOut className="w-5 h-5" /> LOGOUT
               </button>
             </div>
@@ -115,26 +237,18 @@ export default function History() {
         {/* Controls Section */}
         <div className="flex flex-col md:flex-row items-center gap-6 mb-8 w-full max-w-[1200px] mx-auto">
           {/* Filters */}
-          <div className="flex items-center bg-white/40 backdrop-blur-md rounded-full p-1 border border-white/20">
-            <button className="px-6 py-2 bg-white rounded-full text-sm font-bold text-slate-800 shadow-sm transition-all">
-              All
-            </button>
-            <button className="px-6 py-2 rounded-full text-sm font-bold text-slate-800 hover:bg-white/20 transition-all">
-              Today
-            </button>
-            <button className="px-6 py-2 rounded-full text-sm font-bold text-slate-800 hover:bg-white/20 transition-all">
-              This Week
-            </button>
-          </div>
+          
 
           {/* Search */}
           <div className="relative w-full max-w-sm">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none hidden">
+            <div className="absolute inset-y-0 left-0 pl-4 items-center pointer-events-none hidden">
               <Search className="h-4 w-4 text-slate-500" />
             </div>
             <input 
               type="text" 
               placeholder="Search by Seat-ID, Floor ...."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="w-full bg-white/40 backdrop-blur-md border border-white/20 rounded-full py-2.5 px-6 text-sm font-bold text-slate-800 placeholder:text-slate-800/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
             />
           </div>
@@ -156,10 +270,14 @@ export default function History() {
 
             {/* Table Body */}
             <div className="flex-1 overflow-y-auto">
-              {reservations.map((res, index) => (
+              {loading ? (
+                <div className="p-6 text-slate-700 font-semibold">Loading booking history...</div>
+              ) : reservationsToShow.length === 0 ? (
+                <div className="p-6 text-slate-700 font-semibold">No reservations match the current filter.</div>
+              ) : reservationsToShow.map((res, index) => (
                 <div 
-                  key={index} 
-                  className={`grid grid-cols-4 px-6 py-4 items-center ${index !== reservations.length - 1 ? 'border-b border-white/20' : ''} hover:bg-white/10 transition-colors`}
+                  key={`${res.id}-${res.createdAt}`} 
+                  className={`grid grid-cols-4 px-6 py-4 items-center ${index !== reservationsToShow.length - 1 ? 'border-b border-white/20' : ''} hover:bg-white/10 transition-colors`}
                 >
                   <div className="text-base font-bold text-slate-800">{res.id}</div>
                   <div className="text-sm font-medium text-slate-800 whitespace-pre-line leading-tight">{res.floor}</div>
@@ -175,7 +293,7 @@ export default function History() {
 
             {/* Table Footer / Pagination */}
             <div className="px-6 py-4 border-t border-white/30 flex items-center justify-between bg-black/5 mt-auto">
-              <span className="text-xs font-semibold text-slate-100">Showing 1 to 4 from 24 Reservations</span>
+              <span className="text-xs font-semibold text-slate-100">Showing {reservationsToShow.length} reservations</span>
               
               <div className="flex items-center gap-2">
                 <button className="w-8 h-8 rounded bg-white/30 hover:bg-white/50 text-white flex items-center justify-center transition-colors">
@@ -197,36 +315,14 @@ export default function History() {
             {/* Total Hours Card */}
             <div className="bg-[#eaf4ed] rounded-[1.5rem] p-8 shadow-lg">
               <h3 className="text-lg font-medium text-slate-800 mb-2">Total Hours</h3>
-              <div className="text-[3.5rem] font-medium text-black leading-none mb-4 tracking-tight">128.5</div>
+                <div className="text-[3.5rem] font-medium text-black leading-none mb-4 tracking-tight">0</div>
               <p className="text-sm font-medium text-slate-700 leading-snug">
-                You've spent more time in the North Wing this month than anywhere else. Good focus session!
+                You&apos;ve spent more time in the North Wing this month than anywhere else. Good focus session!
               </p>
             </div>
 
             {/* Quick Insight Card */}
-            <div className="bg-[#cfd4dc] rounded-[1.5rem] p-8 shadow-lg">
-              <h3 className="text-lg font-medium text-slate-800 mb-6">Quick Insight</h3>
-              
-              <div className="flex flex-col gap-4">
-                {/* Attendance Rate */}
-                <div className="bg-white rounded-full py-3 px-4 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    <span className="text-sm font-medium text-slate-700">Attendance rate</span>
-                  </div>
-                  <span className="text-base font-bold text-slate-800">92%</span>
-                </div>
-
-                {/* Cancellations */}
-                <div className="bg-white rounded-full py-3 px-4 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-400" />
-                    <span className="text-sm font-medium text-slate-700">Cancellations</span>
-                  </div>
-                  <span className="text-base font-bold text-slate-800">3</span>
-                </div>
-              </div>
-            </div>
+           
 
           </div>
         </div>

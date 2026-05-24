@@ -1,32 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   School, Bell, User, History, Settings, 
-  Heart, LogOut, Building2, Clock, Star, Armchair
+  LogOut, Building2, Clock, Star, Armchair
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, getUserProfile, getUserBookings } from '../lib/supabase';
 
 export default function Dashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
+  const [balanceCredits, setBalanceCredits] = useState(null);
+  const [latestBooking, setLatestBooking] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isActive = true;
+
     try {
       const stored = localStorage.getItem('notifsOn');
       if (stored !== null) setNotifsOn(JSON.parse(stored));
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load notification preference', error);
+    }
     try {
       const savedUser = JSON.parse(localStorage.getItem('user'));
       if (savedUser?.name) setUserName(savedUser.name);
-    } catch (e) {}
+    } catch (error) {
+      console.error('Unable to load saved user', error);
+    }
+
+    const loadBookingState = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      if (!user || !isActive) return;
+
+      try {
+        const profile = await getUserProfile(user.id);
+        if (isActive) {
+          setBalanceCredits(profile?.balance_credits ?? null);
+          setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
+        }
+      } catch (error) {
+        console.error('Unable to load profile', error);
+      }
+
+      try {
+        const bookings = await getUserBookings(user.id, 1);
+        if (isActive) {
+          setLatestBooking(bookings[0] || null);
+        }
+      } catch (error) {
+        console.error('Unable to load latest booking', error);
+      }
+    };
+
+    loadBookingState();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const toggleNotifs = () => {
     const next = !notifsOn;
     setNotifsOn(next);
-    try { localStorage.setItem('notifsOn', JSON.stringify(next)); } catch (e) {}
+    try {
+      localStorage.setItem('notifsOn', JSON.stringify(next));
+    } catch (error) {
+      console.error('Unable to persist notification preference', error);
+    }
   };
+
+  const bookingSeat = latestBooking?.seat_id || 'Seat 12-B04';
+  const bookingFloor = latestBooking?.floor || 'Rasa floor - Right side';
+  const bookingTime = latestBooking?.start_time && latestBooking?.end_time
+    ? `${new Date(latestBooking.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(latestBooking.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : '12:00 - 13:00';
 
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
@@ -71,7 +122,7 @@ export default function Dashboard() {
                 <Building2 className="w-5 h-5 opacity-70" /> Interactive Maps
               </button>
               <div className="h-px bg-slate-200 my-2 mx-4"></div>
-              <button onClick={() => { try { localStorage.removeItem('user'); } catch(e){} setShowDropdown(false); navigate('/'); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
+              <button onClick={() => { supabase.auth.signOut().finally(() => { try { localStorage.removeItem('user'); } catch (error) { console.error('Unable to clear saved user', error); } setShowDropdown(false); navigate('/'); }); }} className="w-full text-left px-6 py-3 flex items-center gap-4 text-red-500 hover:bg-red-50 transition-colors font-bold tracking-wider text-sm">
                 <LogOut className="w-5 h-5" /> LOGOUT
               </button>
             </div>
@@ -92,18 +143,23 @@ export default function Dashboard() {
         {/* Booking Card */}
         <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col sm:flex-row gap-6 items-stretch border border-white/40">
           <div className="flex-1 flex flex-col pr-4">
-            <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase mb-2">Confirmed</span>
-            <h2 className="text-[2.5rem] font-bold text-[#3B4D68] leading-none mb-3">Seat 12-B04</h2>
-            <p className="text-[#6C84A3] font-medium text-sm mb-8">Rasa floor -Right side...</p>
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase">Confirmed</span>
+              <span className="text-[10px] font-bold tracking-widest text-[#3B4D68] uppercase bg-white/70 px-3 py-1 rounded-full">
+                Balance: {balanceCredits ?? '--'}
+              </span>
+            </div>
+            <h2 className="text-[2.5rem] font-bold text-[#3B4D68] leading-none mb-3">{bookingSeat}</h2>
+            <p className="text-[#6C84A3] font-medium text-sm mb-8">{bookingFloor}...</p>
             
             <div className="flex gap-10 mt-auto">
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Time</span>
-                <span className="text-[13px] font-bold text-[#4B6185]">12:00 - 13:00</span>
+                <span className="text-[13px] font-bold text-[#4B6185]">{bookingTime}</span>
               </div>
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Time</span>
-                <span className="text-[13px] font-bold text-[#4B6185]">12:00 - 13:00</span>
+                <span className="text-[13px] font-bold text-[#4B6185]">{latestBooking?.status || 'confirmed'}</span>
               </div>
             </div>
           </div>

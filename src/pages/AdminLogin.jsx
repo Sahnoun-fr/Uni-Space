@@ -8,22 +8,56 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase, mapSupabaseUser, getUserProfile } from '../lib/supabase';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ 
     email: '', 
     password: '',
     rememberMe: false
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const adminUser = { name: 'Admin', email: formData.email, role: 'admin' };
-    localStorage.setItem('user', JSON.stringify(adminUser));
-    console.log('Admin Logging in with:', { email: formData.email });
-    navigate('/admin/dashboard');
+
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        console.error('Auth error full details:', JSON.stringify(error, null, 2));
+        alert(`Login failed: ${error.message}\nCode: ${error.code || 'N/A'}\nStatus: ${error.status || 'N/A'}`);
+        return;
+      }
+
+      const user = data.session?.user;
+      const mappedUser = mapSupabaseUser(user);
+      const profile = user ? await getUserProfile(user.id) : null;
+      const isAdmin = profile?.role === 'admin' || mappedUser?.role === 'admin';
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        alert('This account is not allowed to access the admin portal. Set role=admin in Supabase profiles first.');
+        return;
+      }
+
+      if (mappedUser) {
+        localStorage.setItem('user', JSON.stringify(mappedUser));
+      }
+
+      navigate('/admin/dashboard');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -120,9 +154,10 @@ const AdminLogin = () => {
               <div className="pt-2 flex justify-center">
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full bg-[#82b5ff] hover:bg-[#67a8ff] text-white font-bold py-4 px-4 rounded-lg shadow-lg transition-colors tracking-widest"
                 >
-                  AUTHENTICATE ADMIN
+                  {isSubmitting ? 'AUTHENTICATING...' : 'AUTHENTICATE ADMIN'}
                 </button>
               </div>
 

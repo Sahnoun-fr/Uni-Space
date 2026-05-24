@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { School, ChevronDown, Clock, Map, CalendarCheck, HelpCircle, ArrowRight, AlertCircle, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const Service = () => {
   const [user, setUser] = useState(null);
@@ -15,10 +16,12 @@ const Service = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-    setShowDropdown(false);
-    navigate('/');
+    supabase.auth.signOut().finally(() => {
+      localStorage.removeItem('user');
+      setUser(null);
+      setShowDropdown(false);
+      navigate('/');
+    });
   };
 
   return (
@@ -62,29 +65,39 @@ const Service = () => {
 
           {/* Auth Button / Profile */}
           {user ? (
-            <div className="relative">
-              <div 
-                className="w-10 h-10 rounded-full bg-white text-[#1a365d] flex items-center justify-center font-bold text-lg cursor-pointer shadow-lg hover:scale-105 transition-transform"
-                onClick={() => setShowDropdown(!showDropdown)}
-                title={user.name}
-              >
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              
-              {showDropdown && (
-                <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-2 text-slate-800 border border-slate-100 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                    <p className="text-sm font-bold truncate capitalize">{user.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-red-600 flex items-center gap-2 transition-colors"
-                  >
-                    <LogOut size={16} /> Logout
-                  </button>
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard">
+                <button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white px-5 py-2 rounded-full font-bold text-sm shadow-md transition-all flex items-center gap-2">
+                  Dashboard
+                </button>
+              </Link>
+              <div className="relative">
+                <div 
+                  className="w-10 h-10 rounded-full bg-white text-[#1a365d] flex items-center justify-center font-bold text-lg cursor-pointer shadow-lg hover:scale-105 transition-transform"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  title={user.name}
+                >
+                  {user.name.charAt(0).toUpperCase()}
                 </div>
-              )}
+                
+                {showDropdown && (
+                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-2 text-slate-800 border border-slate-100 z-50">
+                    <div className="px-4 py-2 border-b border-slate-100 mb-1">
+                      <p className="text-sm font-bold truncate capitalize">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <Link to="/dashboard" className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors block">
+                      Dashboard
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-red-600 flex items-center gap-2 transition-colors"
+                    >
+                      <LogOut size={16} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">

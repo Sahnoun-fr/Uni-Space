@@ -7,6 +7,7 @@ import {
   Building2
 } from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { supabase, mapSupabaseUser } from '../lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const Login = () => {
   const [isSignUp, setIsSignUp] = useState(location.state?.isSignUp !== false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ 
     firstName: '',
     lastName: '',
@@ -23,31 +25,86 @@ const Login = () => {
     rememberMe: false
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (isSignUp) {
-      if(formData.password !== formData.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
-      const user = { name: formData.firstName || 'User', email: formData.email };
+  const persistUser = (sessionUser) => {
+    const user = mapSupabaseUser(sessionUser);
+    if (user) {
       localStorage.setItem('user', JSON.stringify(user));
-      console.log('Signing up with:', formData);
-      navigate('/dashboard');
-    } else {
-      const userName = formData.email ? formData.email.split('@')[0] : 'User';
-      const user = { name: userName, email: formData.email };
-      localStorage.setItem('user', JSON.stringify(user));
-      console.log('Logging in with:', { email: formData.email, password: formData.password });
-      navigate('/dashboard');
     }
   };
 
-  const handleGoogleLogin = () => {
-    const user = { name: 'Estin Student', email: 'student@estin.dz' };
-    localStorage.setItem('user', JSON.stringify(user));
-    console.log('Logging in with Google@estin.dz');
-    navigate('/dashboard');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (isSignUp && formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+            },
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
+        });
+
+        if (error) {
+          alert(error.message);
+          return;
+        }
+
+        if (data.session?.user) {
+          persistUser(data.session.user);
+          navigate('/dashboard');
+          return;
+        }
+
+        alert('Account created. Check your email to confirm your account, then log in.');
+        setIsSignUp(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      if (data.session?.user) {
+        persistUser(data.session.user);
+      }
+
+      navigate('/dashboard');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    if (error) {
+      alert(error.message);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -201,9 +258,10 @@ const Login = () => {
               <div className="pt-2 flex justify-center">
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-48 bg-[#82b5ff] hover:bg-[#67a8ff] text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-colors tracking-wide"
                 >
-                  {isSignUp ? 'SIGN-UP' : 'LOG IN'}
+                  {isSubmitting ? 'PLEASE WAIT' : isSignUp ? 'SIGN-UP' : 'LOG IN'}
                 </button>
               </div>
 
@@ -238,6 +296,7 @@ const Login = () => {
               <div className="flex justify-center">
                 <button 
                   onClick={handleGoogleLogin}
+                  type="button"
                   className="bg-white/90 hover:bg-white text-[#67a8ff] font-semibold py-2.5 px-6 rounded-lg transition-colors text-sm w-full sm:w-auto shadow-md"
                 >
                   Login with Google@estin.dz

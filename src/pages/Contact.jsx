@@ -62,29 +62,39 @@ const Contact = () => {
 
           {/* Auth Button / Profile */}
           {user ? (
-            <div className="relative">
-              <div 
-                className="w-10 h-10 rounded-full bg-white text-[#1a365d] flex items-center justify-center font-bold text-lg cursor-pointer shadow-lg hover:scale-105 transition-transform"
-                onClick={() => setShowDropdown(!showDropdown)}
-                title={user.name}
-              >
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              
-              {showDropdown && (
-                <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-2 text-slate-800 border border-slate-100 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                    <p className="text-sm font-bold truncate capitalize">{user.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-red-600 flex items-center gap-2 transition-colors"
-                  >
-                    <LogOut size={16} /> Logout
-                  </button>
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard">
+                <button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white px-5 py-2 rounded-full font-bold text-sm shadow-md transition-all flex items-center gap-2">
+                  Dashboard
+                </button>
+              </Link>
+              <div className="relative">
+                <div 
+                  className="w-10 h-10 rounded-full bg-white text-[#1a365d] flex items-center justify-center font-bold text-lg cursor-pointer shadow-lg hover:scale-105 transition-transform"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  title={user.name}
+                >
+                  {user.name.charAt(0).toUpperCase()}
                 </div>
-              )}
+                
+                {showDropdown && (
+                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-2 text-slate-800 border border-slate-100 z-50">
+                    <div className="px-4 py-2 border-b border-slate-100 mb-1">
+                      <p className="text-sm font-bold truncate capitalize">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <Link to="/dashboard" className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors block">
+                      Dashboard
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-red-600 flex items-center gap-2 transition-colors"
+                    >
+                      <LogOut size={16} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -175,20 +185,18 @@ const Contact = () => {
                <div className="flex flex-col gap-5 text-sm mt-2">
                  <div className="flex items-start gap-4">
                    <MapPin className="w-5 h-5 shrink-0" />
-                   <div className="w-full pt-1">
-                     <div className="w-full border-b-2 border-dotted border-white/60 mb-2"></div>
-                     <div className="w-3/4 border-b-2 border-dotted border-white/60"></div>
+                   <div className="w-full pt-0.5">
+                     <span className="font-semibold tracking-wide leading-relaxed block">Route nationale n° 75,<br/>Amizour – 06300 Bejaia,<br/>Algérie.</span>
                    </div>
                  </div>
                  <div className="flex items-center gap-4">
                    <Phone className="w-5 h-5 shrink-0" />
-                   <span className="font-semibold tracking-wide">034824909</span>
+                   <span className="font-semibold tracking-wide">+213-34-824-916</span>
                  </div>
                  <div className="flex items-start gap-4">
                    <Mail className="w-5 h-5 shrink-0" />
-                   <div className="w-full pt-1">
-                     <div className="w-full border-b-2 border-dotted border-white/60 mb-2"></div>
-                     <div className="w-2/3 border-b-2 border-dotted border-white/60"></div>
+                   <div className="w-full pt-0.5">
+                     <span className="font-semibold tracking-wide">contact@estin.dz</span>
                    </div>
                  </div>
                </div>

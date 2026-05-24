@@ -137,12 +137,7 @@ export default function Settings() {
               >
                 <Bell className="w-5 h-5" /> Notifications
               </button>
-              <button 
-                onClick={() => setActiveTab('security')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'security' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
-              >
-                <Lock className="w-5 h-5" /> Security
-              </button>
+             
               <button 
                 onClick={() => setActiveTab('privacy')}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'privacy' ? 'bg-white text-blue-600 shadow-md' : 'text-white hover:bg-white/10'}`}
@@ -209,34 +204,7 @@ export default function Settings() {
               </div>
             )}
 
-            {activeTab === 'security' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Security Settings</h2>
-                
-                <div className="space-y-6">
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                    <h3 className="font-bold text-[#334155] text-lg mb-4">Change Password</h3>
-                    <div className="max-w-md space-y-4">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1.5">Current Password</label>
-                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1.5">New Password</label>
-                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1.5">Confirm New Password</label>
-                        <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium" />
-                      </div>
-                      <button className="mt-6 bg-[#3B82F6] hover:bg-[#2563EB] text-white px-6 py-2.5 rounded-full font-bold shadow-md transition-colors border border-blue-400">
-                        Update Password
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+           
 
             {activeTab === 'privacy' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -279,10 +247,7 @@ export default function Settings() {
                         <Sun className="w-10 h-10 text-amber-500" />
                         <span className="font-bold text-lg">Light Mode</span>
                       </button>
-                      <button className="flex flex-col items-center justify-center p-8 border-2 border-transparent hover:border-slate-300 rounded-xl bg-slate-800 text-white gap-3 shadow-sm transition-colors">
-                        <Moon className="w-10 h-10 text-blue-300" />
-                        <span className="font-bold text-lg">Dark Mode</span>
-                      </button>
+                     
                     </div>
                   </div>
                 </div>

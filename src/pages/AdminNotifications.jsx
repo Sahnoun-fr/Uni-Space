@@ -1,49 +1,88 @@
-import React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ShieldAlert, Info, CheckCircle2, Trash2, Check, AlertTriangle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const AdminNotifications = () => {
-  const notifications = [
-    {
-      id: 1,
-      type: 'security',
-      title: 'Unauthorized Access Attempt',
-      message: 'Multiple failed login attempts detected from IP 192.168.1.55 on the admin portal.',
-      time: '10 mins ago',
-      read: false,
-      icon: ShieldAlert,
-      color: 'rose'
-    },
-    {
-      id: 2,
-      type: 'alert',
-      title: 'High Occupancy Alert',
-      message: 'Library Floor 2 has reached 95% capacity. Consider dispatching personnel or updating status.',
-      time: '1 hour ago',
-      read: false,
-      icon: AlertTriangle,
-      color: 'amber'
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: 'System Update Completed',
-      message: 'The UniSpace core system has been successfully updated to version 2.4.1.',
-      time: 'Yesterday',
-      read: true,
-      icon: CheckCircle2,
-      color: 'emerald'
-    },
-    {
-      id: 4,
-      type: 'info',
-      title: 'New Map Published',
-      message: 'Science Building Floor 3 has been successfully published to the live environment.',
-      time: 'Yesterday',
-      read: true,
-      icon: Info,
-      color: 'blue'
-    }
-  ];
+  const [notifications, setNotifications] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('all');
+
+  const iconByType = useMemo(() => ({
+    security: ShieldAlert,
+    alert: AlertTriangle,
+    system: CheckCircle2,
+    info: Info,
+  }), []);
+
+  const colorByType = useMemo(() => ({
+    security: 'rose',
+    alert: 'amber',
+    system: 'emerald',
+    info: 'blue',
+  }), []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadNotifications = async () => {
+      if (!supabase) return;
+
+      const [recentBookingsResult, lowBalanceResult] = await Promise.all([
+        supabase
+          .from('bookings')
+          .select('seat_id, floor, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('profiles')
+          .select('full_name, email, balance_credits')
+          .lt('balance_credits', 5)
+          .order('balance_credits', { ascending: true })
+          .limit(5),
+      ]);
+
+      if (!isActive) return;
+
+      const liveNotifications = [];
+
+      (lowBalanceResult.data || []).forEach((profile, index) => {
+        liveNotifications.push({
+          id: `low-balance-${index}`,
+          type: 'alert',
+          title: 'Low Balance Alert',
+          message: `${profile.full_name || profile.email} has ${profile.balance_credits ?? 0} booking credits remaining.`,
+          time: 'Live',
+          read: false,
+        });
+      });
+
+      (recentBookingsResult.data || []).forEach((booking, index) => {
+        liveNotifications.push({
+          id: `booking-${index}`,
+          type: 'info',
+          title: 'New Booking Recorded',
+          message: `Seat ${booking.seat_id} in ${booking.floor} was booked and marked ${booking.status || 'confirmed'}.`,
+          time: new Date(booking.created_at).toLocaleString(),
+          read: index > 1,
+        });
+      });
+
+      setNotifications(liveNotifications);
+    };
+
+    loadNotifications().catch((error) => {
+      console.error('Unable to load admin notifications', error);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const filteredNotifications = notifications.filter((notification) => {
+    if (activeFilter === 'unread') return !notification.read;
+    if (activeFilter === 'security') return notification.type === 'security';
+    return true;
+  });
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -64,16 +103,20 @@ const AdminNotifications = () => {
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-4">
-          <button className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full">All Alerts</button>
-          <button className="text-sm font-bold text-slate-500 hover:text-slate-700 px-4 py-1.5 rounded-full transition-colors">Unread (2)</button>
-          <button className="text-sm font-bold text-slate-500 hover:text-slate-700 px-4 py-1.5 rounded-full transition-colors">Security</button>
+          <button onClick={() => setActiveFilter('all')} className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${activeFilter === 'all' ? 'text-blue-600 bg-blue-50' : 'text-slate-500 hover:text-slate-700'}`}>All Alerts</button>
+          <button onClick={() => setActiveFilter('unread')} className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${activeFilter === 'unread' ? 'text-blue-600 bg-blue-50' : 'text-slate-500 hover:text-slate-700'}`}>Unread ({notifications.filter((notification) => !notification.read).length})</button>
+          <button onClick={() => setActiveFilter('security')} className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${activeFilter === 'security' ? 'text-blue-600 bg-blue-50' : 'text-slate-500 hover:text-slate-700'}`}>Security</button>
         </div>
         
         <div className="divide-y divide-slate-100">
-          {notifications.map((notif) => (
+          {filteredNotifications.length > 0 ? filteredNotifications.map((notif) => {
+            const Icon = iconByType[notif.type] || Info;
+            const color = colorByType[notif.type] || 'blue';
+
+            return (
             <div key={notif.id} className={`p-6 flex gap-4 transition-colors hover:bg-slate-50 ${!notif.read ? 'bg-blue-50/30' : ''}`}>
-              <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${notif.color}-100 flex items-center justify-center`}>
-                <notif.icon className={`w-6 h-6 text-${notif.color}-600`} />
+              <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${color}-100 flex items-center justify-center`}>
+                <Icon className={`w-6 h-6 text-${color}-600`} />
               </div>
               <div className="flex-1">
                 <div className="flex items-start justify-between">
@@ -94,7 +137,8 @@ const AdminNotifications = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          }) : <div className="p-6 text-slate-500 font-medium">No live notifications found.</div>}
         </div>
       </div>
     </div>

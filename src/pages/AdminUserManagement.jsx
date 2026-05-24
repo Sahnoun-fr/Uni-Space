@@ -1,14 +1,60 @@
-import React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, Edit2, Trash2, Ban } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const AdminUserManagement = () => {
-  const users = [
-    { id: 1, name: 'Alice Johnson', email: 'alice.j@university.edu', role: 'Student', status: 'Active' },
-    { id: 2, name: 'Bob Smith', email: 'bob.s@university.edu', role: 'Staff', status: 'Active' },
-    { id: 3, name: 'Charlie Brown', email: 'charlie.b@university.edu', role: 'Student', status: 'Inactive' },
-    { id: 4, name: 'Diana Prince', email: 'diana.p@university.edu', role: 'Admin', status: 'Active' },
-    { id: 5, name: 'Evan Wright', email: 'evan.w@university.edu', role: 'Faculty', status: 'Active' },
-  ];
+  const [users, setUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All Roles');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadUsers = async () => {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, balance_credits, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!isActive) return;
+
+      setUsers((data || []).map((profile) => ({
+        id: profile.id,
+        name: profile.full_name || profile.email?.split('@')?.[0] || 'User',
+        email: profile.email,
+        role: profile.role || 'user',
+        status: (profile.balance_credits ?? 0) > 0 ? 'Active' : 'Inactive',
+        balanceCredits: profile.balance_credits ?? 0,
+      })));
+    };
+
+    loadUsers().catch((error) => {
+      console.error('Unable to load admin users', error);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return users.filter((user) => {
+      const matchesSearch = !query || [user.name, user.email, user.role, user.status].join(' ').toLowerCase().includes(query);
+      const matchesRole = roleFilter === 'All Roles' || user.role.toLowerCase() === roleFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'All Status' || user.status.toLowerCase() === statusFilter.toLowerCase();
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, roleFilter, searchQuery, statusFilter]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -28,17 +74,19 @@ const AdminUserManagement = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               placeholder="Search users by name or email..." 
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
           </div>
           <div className="flex gap-3">
-            <select className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
               <option>All Roles</option>
               <option>Student</option>
               <option>Staff</option>
               <option>Admin</option>
             </select>
-            <select className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
               <option>All Status</option>
               <option>Active</option>
               <option>Inactive</option>
@@ -58,7 +106,7 @@ const AdminUserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
+              {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 px-6 font-medium text-slate-900">{user.name}</td>
                   <td className="py-4 px-6 text-slate-500">{user.email}</td>
@@ -86,13 +134,17 @@ const AdminUserManagement = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td className="py-6 px-6 text-slate-500" colSpan={5}>No users match the current filters.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-          <p className="text-sm text-slate-500 font-medium">Showing 1 to 5 of 5 entries</p>
+          <p className="text-sm text-slate-500 font-medium">Showing 1 to {filteredUsers.length} of {users.length} entries</p>
           <div className="flex gap-2">
             <button className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50">Previous</button>
             <button className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50">Next</button>

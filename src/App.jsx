@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AuthSync from "./components/AuthSync";
 
 import LandingPage from "./pages/Home.jsx";
 import About from "./pages/About";
@@ -24,6 +25,7 @@ import AdminSettings from "./pages/AdminSettings";
 function App() {
   return (
     <BrowserRouter>
+      <AuthSync />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<About />} />

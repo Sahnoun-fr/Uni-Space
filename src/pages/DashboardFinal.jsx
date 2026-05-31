@@ -142,42 +142,51 @@ export default function Dashboard() {
         </div>
 
         {/* Booking Card */}
-        <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col sm:flex-row gap-6 items-stretch border border-white/40">
-          <div className="flex-1 flex flex-col pr-4">
-            <div className="flex items-center justify-between gap-4 mb-2">
-              <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase">Confirmed</span>
-              <span className="text-[10px] font-bold tracking-widest text-[#3B4D68] uppercase bg-white/70 px-3 py-1 rounded-full">
-                Balance: {balanceCredits ?? '--'}
-              </span>
+        {latestBooking ? (
+          <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col sm:flex-row gap-6 items-stretch border border-white/40">
+            <div className="flex-1 flex flex-col pr-4">
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase">Confirmed</span>
+                <span className="text-[10px] font-bold tracking-widest text-[#3B4D68] uppercase bg-white/70 px-3 py-1 rounded-full">
+                  Balance: {balanceCredits ?? '--'}
+                </span>
+              </div>
+              <h2 className="text-[2.5rem] font-bold text-[#3B4D68] leading-none mb-3">{latestBooking.seat_id}</h2>
+              <p className="text-[#6C84A3] font-medium text-sm mb-8">{latestBooking.floor}...</p>
+              
+              <div className="flex gap-10 mt-auto">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Time</span>
+                  <span className="text-[13px] font-bold text-[#4B6185]">{bookingTime}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Status</span>
+                  <span className="text-[13px] font-bold text-[#4B6185]">{latestBooking.status || 'confirmed'}</span>
+                </div>
+              </div>
             </div>
-            <h2 className="text-[2.5rem] font-bold text-[#3B4D68] leading-none mb-3">{bookingSeat}</h2>
-            <p className="text-[#6C84A3] font-medium text-sm mb-8">{bookingFloor}...</p>
             
-            <div className="flex gap-10 mt-auto">
-              <div>
-                <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Time</span>
-                <span className="text-[13px] font-bold text-[#4B6185]">{bookingTime}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold tracking-widest text-[#86A0C8] uppercase block mb-1">Time</span>
-                <span className="text-[13px] font-bold text-[#4B6185]">{latestBooking?.status || 'confirmed'}</span>
+            <div className="w-[240px] shrink-0 relative rounded-2xl overflow-hidden shadow-inner hidden sm:block">
+              <img 
+                src="https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600" 
+                alt="Room view" 
+                className="w-full h-full object-cover blur-[2px] opacity-90 scale-105"
+              />
+              <div className="absolute inset-x-0 bottom-4 flex justify-center">
+                <button className="bg-[#6FA8FF] text-white font-bold py-2.5 px-6 rounded-full shadow-lg text-sm tracking-wide transition-all border border-white/20 whitespace-nowrap">
+                  View Direction
+                </button>
               </div>
             </div>
           </div>
-          
-          <div className="w-[240px] shrink-0 relative rounded-2xl overflow-hidden shadow-inner hidden sm:block">
-            <img 
-              src="https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600" 
-              alt="Room view" 
-              className="w-full h-full object-cover blur-[2px] opacity-90 scale-105"
-            />
-            <div className="absolute inset-x-0 bottom-4 flex justify-center">
-              <button className="bg-[#6FA8FF] text-white font-bold py-2.5 px-6 rounded-full shadow-lg text-sm tracking-wide transition-all border border-white/20 whitespace-nowrap">
-                View Direction
-              </button>
-            </div>
+        ) : (
+          <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col justify-center items-center border border-white/40 h-[200px]">
+            <p className="text-[#3B4D68] font-medium text-lg">You don't have any bookings right now.</p>
+            <button onClick={() => navigate('/interactive-maps')} className="mt-4 bg-[#6FA8FF] text-white font-bold py-2.5 px-6 rounded-full shadow-lg text-sm transition-all border border-white/20">
+              Book a Seat
+            </button>
           </div>
-        </div>
+        )}
 
       </main>
 
@@ -244,16 +253,16 @@ export default function Dashboard() {
         {/* Footer */}
         <footer className="grid grid-cols-2 md:grid-cols-4 gap-6 text-[#A8C7FA]/90 font-medium text-[12px] tracking-wide relative">
           <div className="flex flex-col gap-1.5">
-            <a href="#" className="hover:text-white transition-colors">FEEDBACK</a>
-            <a href="#" className="hover:text-white transition-colors">REPORT AN ISSUE</a>
+            <a href="#!" className="hover:text-white transition-colors">FEEDBACK</a>
+            <a href="#!" className="hover:text-white transition-colors">REPORT AN ISSUE</a>
           </div>
           <div className="flex flex-col gap-1.5">
-            <a href="#" className="hover:text-white transition-colors">HELP CENTER</a>
-            <a href="#" className="hover:text-white transition-colors">FAQs</a>
+            <a href="#!" className="hover:text-white transition-colors">HELP CENTER</a>
+            <a href="#!" className="hover:text-white transition-colors">FAQs</a>
           </div>
           <div className="flex flex-col gap-1.5">
-            <a href="#" className="hover:text-white transition-colors">LEGAL</a>
-            <a href="#" className="hover:text-white transition-colors">TERMS | PRIVACY POLICY</a>
+            <a href="#!" className="hover:text-white transition-colors">LEGAL</a>
+            <a href="#!" className="hover:text-white transition-colors">TERMS | PRIVACY POLICY</a>
           </div>
           <div className="flex flex-col gap-1.5 md:items-end">
             <span className="hover:text-white transition-colors cursor-pointer">CONNECT</span>

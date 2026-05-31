@@ -78,6 +78,22 @@ export const getUserBookings = async (userId, limit = 20) => {
   return data || [];
 };
 
+export const getActiveBookingsByFloor = async (floor) => {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('seat_id, status')
+    .eq('floor', floor)
+    .gt('end_time', new Date().toISOString())
+    .eq('status', 'confirmed');
+  
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  return data || [];
+};
+
 export const createSeatBooking = async ({ seatId, floor, startTime, endTime, status = 'confirmed' }) => {
   if (!supabase) {
     throw new Error('Supabase is not configured.');
@@ -99,6 +115,11 @@ export const createSeatBooking = async ({ seatId, floor, startTime, endTime, sta
 
   if (currentBalance <= 0) {
     throw new Error('Your booking balance is empty.');
+  }
+
+  const activeBookings = await getUserBookings(user.id, 1);
+  if (activeBookings.length > 0 && activeBookings[0].status === 'confirmed' && new Date(activeBookings[0].end_time) > new Date()) {
+    throw new Error('You already have an active reservation. You can only reserve one table at a time.');
   }
 
   const { data: booking, error: bookingError } = await supabase
@@ -129,3 +150,41 @@ export const createSeatBooking = async ({ seatId, floor, startTime, endTime, sta
 
   return booking;
 };
+
+/**
+ * Fetch stats for all seats on a given floor.
+ * Falls back gracefully if the seat_stats table doesn't exist yet.
+ * @param {string} floor
+ * @returns {Promise<Record<string,{wifi:string,outlet:string,noise:string,warmth:string}>>}
+ */
+export const getSeatStats = async (floor) => {
+  if (!supabase) return {};
+  try {
+    const { data, error } = await supabase
+      .from('seat_stats')
+      .select('seat_id, wifi, outlet, noise, warmth')
+      .eq('floor', floor);
+    if (error) throw error;
+    const map = {};
+    (data || []).forEach(row => { map[row.seat_id] = { wifi: row.wifi, outlet: row.outlet, noise: row.noise, warmth: row.warmth }; });
+    return map;
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Upsert a single stat for a seat.
+ * @param {{seatId:string, floor:string, stat:'wifi'|'outlet'|'noise'|'warmth', value:string}} params
+ */
+export const upsertSeatStat = async ({ seatId, floor, stat, value }) => {
+  if (!supabase) return;
+  try {
+    await supabase
+      .from('seat_stats')
+      .upsert({ seat_id: seatId, floor, [stat]: value }, { onConflict: 'seat_id,floor' });
+  } catch {
+    /* table may not exist yet — fail silently */
+  }
+};
+

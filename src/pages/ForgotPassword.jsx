@@ -85,21 +85,21 @@ const ForgotPassword = () => {
         <footer className="text-white/70 text-xs flex flex-wrap justify-center sm:justify-between items-center px-4 py-6 gap-y-4">
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-12">
             <div className="flex flex-col gap-2 uppercase tracking-wider">
-              <a href="#" className="hover:text-white transition-colors">Feedback</a>
-              <a href="#" className="hover:text-white transition-colors">Report an issue</a>
+              <a href="#!" className="hover:text-white transition-colors">Feedback</a>
+              <a href="#!" className="hover:text-white transition-colors">Report an issue</a>
             </div>
             <div className="flex flex-col gap-2 uppercase tracking-wider">
-              <a href="#" className="hover:text-white transition-colors">Help Center</a>
-              <a href="#" className="hover:text-white transition-colors">FAQs</a>
+              <a href="#!" className="hover:text-white transition-colors">Help Center</a>
+              <a href="#!" className="hover:text-white transition-colors">FAQs</a>
             </div>
           </div>
 
           <div className="text-center text-white/50 space-y-1">
              <div className="uppercase tracking-wider hover:text-white transition-colors cursor-pointer">LEGAL</div>
              <div className="uppercase tracking-wider">
-               <a href="#" className="hover:text-white transition-colors">Terms</a>
+               <a href="#!" className="hover:text-white transition-colors">Terms</a>
                <span className="mx-2">|</span>
-               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+               <a href="#!" className="hover:text-white transition-colors">Privacy Policy</a>
              </div>
              <div className="pt-2 text-[10px]">&copy; 2024 UniSpace. All rights reserved</div>
           </div>

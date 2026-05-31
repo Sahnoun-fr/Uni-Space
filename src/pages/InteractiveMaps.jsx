@@ -1,15 +1,14 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react';
 import { 
-  School, Search, Heart, Wifi, Plug, Thermometer, Volume2, 
-  CheckSquare, Square, User, History, Settings, Building2, LogOut, Bell, ArrowLeft
+  School, Search, CheckSquare, Square, User, History, Settings, Building2, LogOut, Bell, ArrowLeft
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
   LineChart, Line
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { supabase, getUserProfile, createSeatBooking } from '../lib/supabase';
+import { supabase, createSeatBooking, getActiveBookingsByFloor, getSeatStats, upsertSeatStat } from '../lib/supabase';
 
 const barData = [
   { name: 'Silent Zone', Free: 4, Soon: 7, Occupied: 0 },
@@ -31,8 +30,9 @@ export default function Maps() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
-  const [balanceCredits, setBalanceCredits] = useState(null);
   const [bookingState, setBookingState] = useState({ loading: false, message: '' });
+  const [seatStats, setSeatStats] = useState({});
+  const [activeStat, setActiveStat] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -61,7 +61,6 @@ export default function Maps() {
         const profile = await getUserProfile(user.id);
         if (isActive) {
           setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
-          setBalanceCredits(profile?.balance_credits ?? null);
         }
       } catch (error) {
         console.error('Unable to load map profile', error);
@@ -83,29 +82,106 @@ export default function Maps() {
     }
   };
 
-  const [filters, setFilters] = useState({
-    power: false,
-    window: false,
-    quiet: false,
-    group: false,
-    wifi: true,
-    available: true
-  });
+  // filters: key = stat key, value = option string or null
+  const [filters, setFilters] = useState({ wifi: null, outlet: null, noise: null, warmth: null });
+  const toggleFilter = (key, value) => setFilters(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
 
-  const toggleFilter = (key) => {
-    setFilters(prev => ({ ...prev, [key]: !prev[key] }));
-  };
 
   const [selectedMap, setSelectedMap] = useState('rasa');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const maps = {
-    rasa: { name: "Rasa Map", url: "/maps/0 floor.png", description: "RASA Club's Local & Ground Floor", seatName: "Seat R-12", seatDesc: "Located in the Rasa Club area, perfect for group discussions." },
-    first_left: { name: "1st Floor (Left)", url: "/maps/1 st floor left (club's spots).jpeg", description: "1st Floor Left - Club Spots & Labs", seatName: "Seat 1L-A1", seatDesc: "Located near the labs with easy access to power outlets." },
-    first_right: { name: "1st Floor (Right)", url: "/maps/1st floor right.png", description: "1st Floor Right - Classrooms", seatName: "Seat 1R-C3", seatDesc: "Quiet spot near the classrooms with a great view." },
-    second: { name: "Second Floor", url: "/maps/2nd floor.png", description: "2nd Floor - Admin & Library", seatName: "Seat 2-L09", seatDesc: "Located in the library section, ideal for focused silent study." },
-    third: { name: "Third Floor", url: "/maps/3rd Floor.png", description: "3rd Floor - Study Halls", seatName: "Seat 3-S22", seatDesc: "Spacious desk in the 3rd floor study hall." }
+  const [bookedSeats, setBookedSeats] = useState([]);
+  const [selectedSeatId, setSelectedSeatId] = useState(null);
+
+
+  const STAT_OPTIONS = {
+    wifi:   { label: 'WiFi',    icon: '📶', opts: ['Strong', 'Weak'] },
+    outlet: { label: 'Outlet',  icon: '🔌', opts: ['Available', 'None'] },
+    noise:  { label: 'Noise',   icon: '🔊', opts: ['Quiet', 'Noisy'] },
+    warmth: { label: 'Warmth',  icon: '🌡️', opts: ['Warm', 'Cold'] },
   };
 
+  const maps = {
+    rasa: {
+      name: 'Rasa Map', url: '/maps/0_floor.png', description: "RASA Club's Local & Ground Floor",
+      tables: [
+        { id: 'Seat R-10', name: 'Seat R-10', desc: 'Near the entrance, great for quick sessions.', x: '18%', y: '30%' },
+        { id: 'Seat R-12', name: 'Seat R-12', desc: 'Central spot, perfect for group discussions.', x: '30%', y: '40%' },
+        { id: 'Seat R-15', name: 'Seat R-15', desc: 'Quiet spot near the east wall.', x: '60%', y: '30%' },
+        { id: 'Seat R-18', name: 'Seat R-18', desc: 'Corner desk with good lighting.', x: '75%', y: '55%' },
+        { id: 'Seat R-20', name: 'Seat R-20', desc: 'Spacious desk for a team.', x: '45%', y: '65%' },
+        { id: 'Seat R-23', name: 'Seat R-23', desc: 'By the window, natural light.', x: '25%', y: '72%' },
+      ],
+    },
+    first_left: {
+      name: '1st Floor (Left)', url: '/maps/first_left_spots.jpeg', description: '1st Floor Left – Club Spots & Labs',
+      tables: [
+        { id: 'Seat 1L-A1', name: 'Seat 1L-A1', desc: 'Near the labs, easy power access.', x: '20%', y: '25%' },
+        { id: 'Seat 1L-A2', name: 'Seat 1L-A2', desc: 'Side desk by the lab door.', x: '40%', y: '25%' },
+        { id: 'Seat 1L-B1', name: 'Seat 1L-B1', desc: 'Open area, good for collaboration.', x: '60%', y: '45%' },
+        { id: 'Seat 1L-B2', name: 'Seat 1L-B2', desc: 'Near the window.', x: '75%', y: '60%' },
+        { id: 'Seat 1L-C1', name: 'Seat 1L-C1', desc: 'Back row, quieter zone.', x: '30%', y: '70%' },
+      ],
+    },
+    first_right: {
+      name: '1st Floor (Right)', url: '/maps/first_right.png', description: '1st Floor Right – Classrooms',
+      tables: [
+        { id: 'Seat 1R-C1', name: 'Seat 1R-C1', desc: 'Front row classroom desk.', x: '25%', y: '30%' },
+        { id: 'Seat 1R-C3', name: 'Seat 1R-C3', desc: 'Quiet spot, great view.', x: '50%', y: '45%' },
+        { id: 'Seat 1R-C5', name: 'Seat 1R-C5', desc: 'Centre desk, well-lit.', x: '70%', y: '35%' },
+        { id: 'Seat 1R-D4', name: 'Seat 1R-D4', desc: 'Back row desk.', x: '20%', y: '75%' },
+        { id: 'Seat 1R-D6', name: 'Seat 1R-D6', desc: 'Corner, quieter.', x: '65%', y: '72%' },
+      ],
+    },
+    second: {
+      name: 'Second Floor', url: '/maps/second_floor.png', description: '2nd Floor – Admin & Library',
+      tables: [
+        { id: 'Seat 2-L05', name: 'Seat 2-L05', desc: 'Library entrance, easy access.', x: '18%', y: '35%' },
+        { id: 'Seat 2-L09', name: 'Seat 2-L09', desc: 'Library section, silent study.', x: '35%', y: '50%' },
+        { id: 'Seat 2-L10', name: 'Seat 2-L10', desc: 'Library corner, very quiet.', x: '60%', y: '28%' },
+        { id: 'Seat 2-L12', name: 'Seat 2-L12', desc: 'Near admin, good wifi.', x: '75%', y: '60%' },
+        { id: 'Seat 2-L14', name: 'Seat 2-L14', desc: 'Bright spot by window.', x: '45%', y: '72%' },
+      ],
+    },
+    third: {
+      name: 'Third Floor', url: '/maps/third_floor.png', description: '3rd Floor – Study Halls',
+      tables: [
+        { id: 'Seat 3-S10', name: 'Seat 3-S10', desc: 'Open study hall, lots of space.', x: '20%', y: '28%' },
+        { id: 'Seat 3-S15', name: 'Seat 3-S15', desc: 'Near the projector screen.', x: '45%', y: '32%' },
+        { id: 'Seat 3-S22', name: 'Seat 3-S22', desc: 'Spacious desk in study hall.', x: '55%', y: '55%' },
+        { id: 'Seat 3-S25', name: 'Seat 3-S25', desc: 'Near the stairs, quick exit.', x: '78%', y: '35%' },
+        { id: 'Seat 3-S30', name: 'Seat 3-S30', desc: 'Back wall, very quiet.', x: '30%', y: '72%' },
+        { id: 'Seat 3-S35', name: 'Seat 3-S35', desc: 'Corner desk, solo study.', x: '70%', y: '70%' },
+      ],
+    },
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [bookings, stats] = await Promise.all([
+          getActiveBookingsByFloor(maps[selectedMap].name),
+          getSeatStats(maps[selectedMap].name),
+        ]);
+        setBookedSeats(bookings.map(b => b.seat_id));
+        setSeatStats(stats);
+      } catch (err) { console.error(err); }
+    };
+    load();
+    setSelectedSeatId(maps[selectedMap].tables[0].id);
+    setActiveStat(null);
+  }, [selectedMap]);
+
+  const selectedSeat = maps[selectedMap].tables.find(t => t.id === selectedSeatId) || maps[selectedMap].tables[0];
+  const isSeatBooked = bookedSeats.includes(selectedSeat.id);
+
+  // derive visible tables based on active filters and search query
+  const filteredTables = maps[selectedMap]?.tables.filter(t => {
+    const stats = seatStats[t.id] || {};
+    const matchesStats = Object.entries(filters).every(([k, v]) => !v || stats[k] === v);
+    const matchesSearch = !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStats && matchesSearch;
+  }) ?? [];
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
       <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
@@ -166,24 +242,33 @@ export default function Maps() {
 
       <div className="relative z-10 flex flex-1 w-full max-w-[1400px] mx-auto gap-8 lg:px-8 px-4 pb-8 overflow-hidden h-0">
         
-        {/* Left Sidebar */}
+        {/* Left Sidebar - Stat Filters */}
         <aside className="w-[180px] flex flex-col text-white shrink-0 hidden lg:flex mt-4">
-          <div className="mb-12">
-            <h3 className="text-[13px] tracking-widest uppercase font-bold text-white/90 mb-6 drop-shadow-sm leading-relaxed">
-              Find Your<br />Seat
-            </h3>
+          <div className="mb-8">
+            <h3 className="text-[13px] tracking-widest uppercase font-bold text-white/90 mb-2 drop-shadow-sm leading-relaxed">Find Your<br/>Seat</h3>
           </div>
-
-          <div>
-            <h3 className="text-[13px] tracking-widest uppercase font-bold text-white/90 mb-6 drop-shadow-sm">Filter</h3>
-            <ul className="space-y-4">
-              <FilterItem label="With Power Outlet" checked={filters.power} onClick={() => toggleFilter('power')} />
-              <FilterItem label="Window View" checked={filters.window} onClick={() => toggleFilter('window')} />
-              <FilterItem label="Quiet Zone" checked={filters.quiet} onClick={() => toggleFilter('quiet')} />
-              <FilterItem label="Group Friendly" checked={filters.group} onClick={() => toggleFilter('group')} />
-              <FilterItem label="Strong Wifi" checked={filters.wifi} onClick={() => toggleFilter('wifi')} />
-              <FilterItem label="Available Only" checked={filters.available} onClick={() => toggleFilter('available')} />
-            </ul>
+          <h3 className="text-[13px] tracking-widest uppercase font-bold text-white/90 mb-4 drop-shadow-sm">Filter by Stats</h3>
+          <div className="space-y-5">
+            {Object.entries(STAT_OPTIONS).map(([key, cfg]) => (
+              <div key={key}>
+                <p className="text-[11px] font-bold text-white/70 uppercase tracking-widest mb-2">{cfg.icon} {cfg.label}</p>
+                <div className="flex flex-col gap-1.5">
+                  {cfg.opts.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => toggleFilter(key, opt)}
+                      className={`text-left text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
+                        filters[key] === opt
+                          ? 'bg-white text-blue-700 shadow-md'
+                          : 'bg-white/15 text-white hover:bg-white/25'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </aside>
 
@@ -201,6 +286,8 @@ export default function Maps() {
                 <div className="relative w-full lg:w-80">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="search for locals or spaces ..." 
                     className="w-full border border-slate-200 rounded-full py-2.5 pl-11 pr-4 text-xs lg:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-600 placeholder:text-slate-400"
                   />
@@ -248,10 +335,25 @@ export default function Maps() {
                     className="max-w-full max-h-full object-contain p-4 drop-shadow-xl animate-in fade-in zoom-in duration-500"
                   />
                   
+                  {filteredTables.map((table) => {
+                    const isBooked = bookedSeats.includes(table.id);
+                    const isSelected = selectedSeatId === table.id;
+                    return (
+                      <div
+                        key={table.id}
+                        onClick={() => setSelectedSeatId(table.id)}
+                        className={`absolute w-4 h-4 md:w-5 md:h-5 rounded-full cursor-pointer transition-transform transform hover:scale-125 flex items-center justify-center shadow-md ${isBooked ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} ${isSelected ? 'ring-4 ring-blue-400' : ''}`}
+                        style={{ top: table.y, left: table.x }}
+                        title={`${table.name} - ${isBooked ? 'Reserved' : 'Available'}`}
+                      >
+                         <span className="text-[8px] md:text-[10px] font-bold text-white shadow-sm">{table.id.split('-')[1] || table.id}</span>
+                      </div>
+                    );
+                  })}
+
                   <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur shadow-sm rounded-full px-4 py-2 text-[11px] font-bold text-slate-700 flex items-center gap-3 z-20 border border-slate-200">
-                    <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500"></div> Calm</span>
-                    <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div> Medium</span>
-                    <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Crowded</span>
+                    <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500"></div> Available</span>
+                    <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Reserved</span>
                   </div>
 
                   <div className="absolute bottom-0 right-0 bg-blue-600 shadow-xl rounded-tl-2xl px-6 py-3 text-[13px] font-bold text-white z-20">
@@ -322,58 +424,56 @@ export default function Maps() {
 
           {/* Right Panel */}
           <aside className="w-[280px] bg-[#B0C4DE] border-l border-white/20 flex flex-col shrink-0">
-             <div className="p-5 pb-0 mt-2">
-                <div className="w-full h-32 rounded-xl overflow-hidden shadow-sm mb-6">
-                   <img 
-                     src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600" 
-                     alt="Seat View"
-                     className="w-full h-full object-cover" 
-                   />
+             <div className="p-5 pb-0 mt-2 flex flex-col gap-3">
+                <div className="w-full h-28 rounded-xl overflow-hidden shadow-sm">
+                  <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600" alt="Seat View" className="w-full h-full object-cover" />
                 </div>
-                
-                <div className="flex justify-between items-start mb-3">
-                   <h2 className="text-2xl font-bold text-[#354868] leading-tight drop-shadow-sm whitespace-pre-line">
-                     {maps[selectedMap].seatName.replace('-', '-\n')}
-                   </h2>
-                   <button className="text-[#354868] hover:text-red-500 transition-colors p-1">
-                      <Heart className="w-6 h-6" strokeWidth={1.5} />
-                   </button>
-                </div>
+                <h2 className="text-xl font-bold text-[#354868]">{selectedSeat.name}</h2>
+                <p className="text-[12px] font-semibold text-[#48638C] leading-relaxed">{selectedSeat.desc}</p>
 
-                 <div className="flex items-center justify-between mb-6 text-[#354868]">
-                   <span className="text-[11px] font-bold uppercase tracking-widest">Balance</span>
-                   <span className="text-sm font-extrabold">{balanceCredits ?? '--'} bookings</span>
-                 </div>
-
-                <p className="text-[13px] font-semibold text-[#48638C] mb-8 leading-relaxed pr-2">
-                   {maps[selectedMap].seatDesc}
-                </p>
-
-                <div className="flex flex-col gap-5">
-                   <div className="flex items-center gap-4 text-[#354868]">
-                      <div className="w-10 h-10 rounded-xl bg-[#86A0C8] text-white flex items-center justify-center shadow-sm">
-                         <Wifi className="w-5 h-5" strokeWidth={2.5}/>
+                {/* Stat rows */}
+                <div className="flex flex-col gap-3 mt-1">
+                  {Object.entries(STAT_OPTIONS).map(([key, cfg]) => {
+                    const current = seatStats[selectedSeat.id]?.[key] || 'unknown';
+                    const isExpanded = activeStat === key;
+                    return (
+                      <div key={key} className="bg-white/50 rounded-xl p-2.5">
+                        <button
+                          onClick={() => setActiveStat(isExpanded ? null : key)}
+                          className="w-full flex items-center justify-between gap-2"
+                        >
+                          <span className="flex items-center gap-2 text-[#354868] font-bold text-[13px]">
+                            <span className="text-base">{cfg.icon}</span> {cfg.label}
+                          </span>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            current === 'unknown' ? 'bg-slate-200 text-slate-500'
+                            : cfg.opts[0] === current ? 'bg-green-100 text-green-700'
+                            : 'bg-red-100 text-red-600'
+                          }`}>{current === 'unknown' ? '?' : current}</span>
+                        </button>
+                        {isExpanded && (
+                          <div className="flex gap-2 mt-2">
+                            {cfg.opts.map(opt => (
+                              <button
+                                key={opt}
+                                onClick={async () => {
+                                  const next = { ...seatStats, [selectedSeat.id]: { ...(seatStats[selectedSeat.id] || {}), [key]: opt } };
+                                  setSeatStats(next);
+                                  setActiveStat(null);
+                                  await upsertSeatStat({ seatId: selectedSeat.id, floor: maps[selectedMap].name, stat: key, value: opt });
+                                }}
+                                className={`flex-1 py-1.5 rounded-lg text-[12px] font-bold transition-all ${
+                                  current === opt
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'
+                                }`}
+                              >{opt}</button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <span className="font-bold text-[13px] tracking-wide">Wifi State</span>
-                   </div>
-                   <div className="flex items-center gap-4 text-[#354868]">
-                      <div className="w-10 h-10 rounded-xl bg-[#86A0C8] text-white flex items-center justify-center shadow-sm">
-                         <Plug className="w-5 h-5" strokeWidth={2.5}/>
-                      </div>
-                      <span className="font-bold text-[13px] tracking-wide">Outlet State</span>
-                   </div>
-                   <div className="flex items-center gap-4 text-[#354868]">
-                      <div className="w-10 h-10 rounded-xl bg-[#86A0C8] text-white flex items-center justify-center shadow-sm">
-                         <Volume2 className="w-5 h-5" strokeWidth={2.5}/>
-                      </div>
-                      <span className="font-bold text-[13px] tracking-wide">Noise State</span>
-                   </div>
-                   <div className="flex items-center gap-4 text-[#354868]">
-                      <div className="w-10 h-10 rounded-xl bg-[#86A0C8] text-white flex items-center justify-center shadow-sm">
-                         <Thermometer className="w-5 h-5" strokeWidth={2.5}/>
-                      </div>
-                      <span className="font-bold text-[13px] tracking-wide">Warmth State</span>
-                   </div>
+                    );
+                  })}
                 </div>
              </div>
 
@@ -383,22 +483,21 @@ export default function Maps() {
                     setBookingState({ loading: true, message: '' });
                     try {
                       const booking = await createSeatBooking({
-                        seatId: maps[selectedMap].seatName,
+                        seatId: selectedSeat.id,
                         floor: maps[selectedMap].name,
                         startTime: new Date().toISOString(),
                         endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
                       });
-                      setBookingState({ loading: false, message: `Booked ${booking.seat_id} successfully.` });
-                      const profile = await getUserProfile((await supabase.auth.getUser()).data.user.id);
-                      setBalanceCredits(profile?.balance_credits ?? null);
+                      setBookingState({ loading: false, message: `✅ Booked ${booking.seat_id} successfully!` });
+                      setBookedSeats((prev) => [...prev, selectedSeat.id]);
                     } catch (error) {
                       setBookingState({ loading: false, message: error.message || 'Unable to create booking.' });
                     }
                   }}
-                  disabled={bookingState.loading}
-                  className="w-full py-3.5 bg-[#D5F5EC] hover:bg-[#AEEBDB] disabled:opacity-60 text-[#2F7E6B] font-bold flex items-center justify-center rounded-[12px] text-[13px] tracking-wide transition-all shadow-sm"
+                  disabled={bookingState.loading || isSeatBooked}
+                  className={`w-full py-3.5 font-bold flex items-center justify-center rounded-[12px] text-[13px] tracking-wide transition-all shadow-sm ${isSeatBooked ? 'bg-red-100 text-red-600 cursor-not-allowed' : 'bg-[#D5F5EC] hover:bg-[#AEEBDB] disabled:opacity-60 text-[#2F7E6B]'}`}
                 >
-                   {bookingState.loading ? 'Booking...' : `Reserve ${maps[selectedMap].seatName}`}
+                   {bookingState.loading ? 'Booking...' : isSeatBooked ? 'Reserved by others' : `Reserve ${selectedSeat.name}`}
                 </button>
                 <button 
                   onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSeTNgvu_0stHw2TEdul-0D60YP8u86t7RvwRaEPNqKq549k2g/viewform?usp=publish-editor', '_blank', 'noopener,noreferrer')}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   School, Search, ChevronLeft, ChevronRight, CheckCircle2, 
-  AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft 
+  AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft, Trash2 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, getUserProfile, getUserBookings } from '../lib/supabase';
@@ -28,6 +28,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /** @param {Date} leftDate @param {Date} rightDate */
   const sameDay = (leftDate, rightDate) =>
@@ -92,6 +93,7 @@ export default function History() {
         const bookings = await getUserBookings(user.id, 50);
         if (isActive) {
           setReservations(bookings.map((booking) => ({
+            bookingId: booking.id,
             id: booking.seat_id,
             floor: booking.floor,
             startTime: booking.start_time,
@@ -137,6 +139,23 @@ export default function History() {
     });
   };
 
+  const handleDelete = async (bookingId) => {
+    if (isDeleting || !supabase) return;
+    if (!window.confirm("Are you sure you want to delete this reservation?")) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
+      if (error) throw error;
+      setReservations(prev => prev.filter(r => r.bookingId !== bookingId));
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      alert('Unable to delete reservation.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const reservationsToShow = reservations.filter((reservation) => {
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch = !query || [reservation.id, reservation.floor, reservation.status].join(' ').toLowerCase().includes(query);
@@ -166,6 +185,15 @@ export default function History() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const totalHours = Math.round(
+    reservationsToShow.reduce((acc, res) => {
+      const start = new Date(res.startTime);
+      const end = new Date(res.endTime);
+      const diffMs = end.getTime() - start.getTime();
+      return acc + Math.max(0, diffMs / (1000 * 60 * 60));
+    }, 0)
+  );
 
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
@@ -282,10 +310,27 @@ export default function History() {
                   <div className="text-base font-bold text-slate-800">{res.id}</div>
                   <div className="text-sm font-medium text-slate-800 whitespace-pre-line leading-tight">{res.floor}</div>
                   <div className="text-sm font-medium text-slate-800 whitespace-pre-line leading-tight">{res.date}</div>
-                  <div>
+                  <div className="flex items-center justify-between pr-4">
                     <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${getStatusColor(res.status)}`}>
                       {res.status}
                     </span>
+                    {(() => {
+                      const hoursSinceStart = (new Date().getTime() - new Date(res.startTime).getTime()) / (1000 * 60 * 60);
+                      // Temporary bypass to allow deleting the two false reservations
+                      const isFalseReservation = res.id === 'Seat 1L-A1' || res.id === 'Seat 1R-C3';
+                      const canDelete = isFalseReservation || hoursSinceStart >= 10;
+                      return (
+                        <button 
+                          onClick={() => handleDelete(res.bookingId)}
+                          disabled={isDeleting || !canDelete}
+                          className="p-1.5 px-3 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
+                          title={!canDelete ? `Can be deleted in ${Math.ceil(10 - hoursSinceStart)} hours` : "Delete Reservation"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -315,7 +360,7 @@ export default function History() {
             {/* Total Hours Card */}
             <div className="bg-[#eaf4ed] rounded-[1.5rem] p-8 shadow-lg">
               <h3 className="text-lg font-medium text-slate-800 mb-2">Total Hours</h3>
-                <div className="text-[3.5rem] font-medium text-black leading-none mb-4 tracking-tight">0</div>
+                <div className="text-[3.5rem] font-medium text-black leading-none mb-4 tracking-tight">{totalHours}</div>
               <p className="text-sm font-medium text-slate-700 leading-snug">
                 You&apos;ve spent more time in the North Wing this month than anywhere else. Good focus session!
               </p>

@@ -8,7 +8,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { supabase, createSeatBooking, getActiveBookingsByFloor, getSeatStats, upsertSeatStat } from '../lib/supabase';
+import { supabase, getUserProfile, getActiveBookingsByFloor, createSeatBooking, getSeatStats, upsertSeatStat } from '../lib/supabase';
 
 const barData = [
   { name: 'Silent Zone', Free: 4, Soon: 7, Occupied: 0 },
@@ -33,6 +33,7 @@ export default function Maps() {
   const [bookingState, setBookingState] = useState({ loading: false, message: '' });
   const [seatStats, setSeatStats] = useState({});
   const [activeStat, setActiveStat] = useState(null);
+  const [selectedSeatId, setSelectedSeatId] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -91,8 +92,6 @@ export default function Maps() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [bookedSeats, setBookedSeats] = useState([]);
-  const [selectedSeatId, setSelectedSeatId] = useState(null);
-
 
   const STAT_OPTIONS = {
     wifi:   { label: 'WiFi',    icon: '📶', opts: ['Strong', 'Weak'] },

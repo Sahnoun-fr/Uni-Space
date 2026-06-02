@@ -110,13 +110,6 @@ export const createSeatBooking = async ({ seatId, floor, startTime, endTime, sta
     throw new Error('You must be signed in to create a booking.');
   }
 
-  const profile = await getUserProfile(user.id);
-  const currentBalance = profile?.balance_credits ?? DEFAULT_BOOKING_BALANCE;
-
-  if (currentBalance <= 0) {
-    throw new Error('Your booking balance is empty.');
-  }
-
   const activeBookings = await getUserBookings(user.id, 1);
   if (activeBookings.length > 0 && activeBookings[0].status === 'confirmed' && new Date(activeBookings[0].end_time) > new Date()) {
     throw new Error('You already have an active reservation. You can only reserve one table at a time.');
@@ -139,14 +132,6 @@ export const createSeatBooking = async ({ seatId, floor, startTime, endTime, sta
     throw bookingError;
   }
 
-  const { error: balanceError } = await supabase
-    .from('profiles')
-    .update({ balance_credits: currentBalance - 1 })
-    .eq('id', user.id);
-
-  if (balanceError) {
-    throw balanceError;
-  }
 
   return booking;
 };

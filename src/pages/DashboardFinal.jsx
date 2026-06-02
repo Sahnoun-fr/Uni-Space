@@ -10,7 +10,6 @@ export default function Dashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
-  const [balanceCredits, setBalanceCredits] = useState(null);
   const [latestBooking, setLatestBooking] = useState(null);
   const navigate = useNavigate();
 
@@ -40,7 +39,6 @@ export default function Dashboard() {
       try {
         const profile = await getUserProfile(user.id);
         if (isActive) {
-          setBalanceCredits(profile?.balance_credits ?? null);
           setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
         }
       } catch (error) {
@@ -147,9 +145,6 @@ export default function Dashboard() {
             <div className="flex-1 flex flex-col pr-4">
               <div className="flex items-center justify-between gap-4 mb-2">
                 <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase">Confirmed</span>
-                <span className="text-[10px] font-bold tracking-widest text-[#3B4D68] uppercase bg-white/70 px-3 py-1 rounded-full">
-                  Balance: {balanceCredits ?? '--'}
-                </span>
               </div>
               <h2 className="text-[2.5rem] font-bold text-[#3B4D68] leading-none mb-3">{latestBooking.seat_id}</h2>
               <p className="text-[#6C84A3] font-medium text-sm mb-8">{latestBooking.floor}...</p>
@@ -173,7 +168,9 @@ export default function Dashboard() {
                 className="w-full h-full object-cover blur-[2px] opacity-90 scale-105"
               />
               <div className="absolute inset-x-0 bottom-4 flex justify-center">
-                <button className="bg-[#6FA8FF] text-white font-bold py-2.5 px-6 rounded-full shadow-lg text-sm tracking-wide transition-all border border-white/20 whitespace-nowrap">
+                <button 
+                  onClick={() => navigate('/interactive-maps')}
+                  className="bg-[#6FA8FF] text-white font-bold py-2.5 px-6 rounded-full shadow-lg text-sm tracking-wide transition-all border border-white/20 whitespace-nowrap hover:bg-blue-500 active:scale-95">
                   View Direction
                 </button>
               </div>

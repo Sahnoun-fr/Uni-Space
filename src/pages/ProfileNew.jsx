@@ -12,7 +12,6 @@ export default function Profile() {
   const [notifsOn, setNotifsOn] = useState(true);
   const [userName, setUserName] = useState('User Name');
   const [userEmail, setUserEmail] = useState('username@estin.dz');
-  const [balanceCredits, setBalanceCredits] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
 
   useEffect(() => {
@@ -36,7 +35,6 @@ export default function Profile() {
         if (isActive) {
           setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')?.[0] || 'User');
           setUserEmail(profile?.email || user.email || 'username@estin.dz');
-          setBalanceCredits(profile?.balance_credits ?? null);
         }
       } catch (error) {
         console.error('Unable to load profile data', error);
@@ -148,9 +146,6 @@ export default function Profile() {
                 <h1 className="text-4xl font-bold text-[#1E293B] mb-2">{userName}</h1>
                 <p className="text-lg text-[#64748B] font-medium flex items-center gap-2">
                   <Mail className="w-5 h-5" /> {userEmail}
-                </p>
-                <p className="text-sm font-bold text-[#3B82F6] mt-3">
-                  Booking balance: {balanceCredits ?? '--'} credits
                 </p>
               </div>
              

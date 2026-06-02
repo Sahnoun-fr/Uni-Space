@@ -163,12 +163,50 @@ export default function Maps() {
           getSeatStats(maps[selectedMap].name),
         ]);
         setBookedSeats(bookings.map(b => b.seat_id));
+        // Clean up any duplicate active bookings for the same seat (keep first)
+        const cleanDuplicates = async () => {
+          const dupMap = {};
+          bookings.forEach(b => {
+            (dupMap[b.seat_id] = dupMap[b.seat_id] || []).push(b);
+          });
+          for (const seatId in dupMap) {
+            if (dupMap[seatId].length > 1) {
+              const toDelete = dupMap[seatId].slice(1);
+              for (const del of toDelete) {
+                await supabase.from('bookings').delete().eq('id', del.id);
+              }
+            }
+          }
+        };
+        cleanDuplicates();
         setSeatStats(stats);
       } catch (err) { console.error(err); }
     };
     load();
     setSelectedSeatId(maps[selectedMap].tables[0].id);
     setActiveStat(null);
+
+    // Subscribe to realtime booking insertions so it updates instantly for other users
+    const channel = supabase?.channel(`public:bookings-${selectedMap}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings',
+          filter: `floor=eq.${maps[selectedMap].name}`
+        },
+        (payload) => {
+          if (payload.new && payload.new.status === 'confirmed') {
+            setBookedSeats((prev) => [...prev, payload.new.seat_id]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [selectedMap]);
 
   const selectedSeat = maps[selectedMap].tables.find(t => t.id === selectedSeatId) || maps[selectedMap].tables[0];
@@ -481,7 +519,16 @@ export default function Maps() {
                   onClick={async () => {
                     setBookingState({ loading: true, message: '' });
                     try {
-                      const booking = await createSeatBooking({
+                      const existing = await supabase
+                      .from('bookings')
+                      .select('id')
+                      .eq('seat_id', selectedSeat.id)
+                      .eq('status', 'confirmed')
+                      .gt('end_time', new Date().toISOString());
+                    if (existing.data && existing.data.length > 0) {
+                      throw new Error('Seat already reserved by another user.');
+                    }
+                    const booking = await createSeatBooking({
                         seatId: selectedSeat.id,
                         floor: maps[selectedMap].name,
                         startTime: new Date().toISOString(),

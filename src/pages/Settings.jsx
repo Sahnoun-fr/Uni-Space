@@ -14,6 +14,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [userName, setUserName] = useState('User Name');
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     try {
@@ -27,6 +28,11 @@ export default function Settings() {
       if (su !== null) setSystemUpdates(JSON.parse(su));
       const savedUser = JSON.parse(localStorage.getItem('user'));
       if (savedUser?.name) setUserName(savedUser.name);
+      const dm = localStorage.getItem('darkMode');
+      const isDark = dm === 'true';
+      setDarkMode(isDark);
+      if (isDark) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
     } catch (e) {}
   }, []);
 
@@ -62,9 +68,16 @@ export default function Settings() {
     } catch (e) {}
   };
 
+  const toggleDarkMode = (enable) => {
+    setDarkMode(enable);
+    try { localStorage.setItem('darkMode', String(enable)); } catch (e) {}
+    if (enable) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  };
+
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
-      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0 uni-overlay" />
 
       {/* Top Navbar */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
@@ -129,7 +142,7 @@ export default function Settings() {
         <div className="flex flex-col md:flex-row gap-8 items-start">
           
           {/* Sidebar Navigation */}
-          <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl shrink-0">
+          <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl shrink-0 uni-sidebar">
             <nav className="flex flex-col gap-2">
               <button 
                 onClick={() => setActiveTab('notifications')}
@@ -154,7 +167,7 @@ export default function Settings() {
           </div>
 
           {/* Settings Content Area */}
-          <div className="flex-1 bg-[#F8FAFC]/95 backdrop-blur-xl rounded-[2rem] p-8 shadow-2xl border border-white/40 w-full">
+          <div className="flex-1 bg-[#F8FAFC]/95 backdrop-blur-xl rounded-[2rem] p-8 shadow-2xl border border-white/40 w-full uni-card">
             
             {activeTab === 'notifications' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -237,18 +250,76 @@ export default function Settings() {
 
             {activeTab === 'appearance' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-6">Appearance</h2>
-                
+                <h2 className="text-2xl font-bold text-[#1E293B] mb-2">Appearance</h2>
+                <p className="text-slate-500 text-sm mb-8">Choose how UniSpace looks for you.</p>
+
                 <div className="space-y-6">
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                  {/* Theme selector */}
+                  <div className="uni-row bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                     <h3 className="font-bold text-[#334155] text-lg mb-6">Theme</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
-                      <button className="flex flex-col items-center justify-center p-8 border-2 border-blue-500 rounded-xl bg-slate-50 text-slate-800 gap-3 shadow-sm">
-                        <Sun className="w-10 h-10 text-amber-500" />
-                        <span className="font-bold text-lg">Light Mode</span>
+                    <div className="grid grid-cols-2 gap-4 max-w-sm">
+                      {/* Light Mode Card */}
+                      <button
+                        onClick={() => toggleDarkMode(false)}
+                        className={`flex flex-col items-center justify-center p-6 rounded-2xl gap-3 border-2 transition-all ${
+                          !darkMode
+                            ? 'border-blue-500 bg-blue-50 shadow-lg scale-105'
+                            : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50'
+                        }`}
+                      >
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                          !darkMode ? 'bg-amber-100' : 'bg-slate-100'
+                        }`}>
+                          <Sun className={`w-8 h-8 ${ !darkMode ? 'text-amber-500' : 'text-slate-400'}`} />
+                        </div>
+                        <span className={`font-bold text-sm ${ !darkMode ? 'text-blue-700' : 'text-slate-500'}`}>Light</span>
+                        {!darkMode && <span className="text-[10px] font-bold text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">Active</span>}
                       </button>
-                     
+
+                      {/* Dark Mode Card */}
+                      <button
+                        onClick={() => toggleDarkMode(true)}
+                        className={`flex flex-col items-center justify-center p-6 rounded-2xl gap-3 border-2 transition-all ${
+                          darkMode
+                            ? 'border-blue-500 bg-slate-900 shadow-lg scale-105'
+                            : 'border-slate-200 bg-slate-50 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                          darkMode ? 'bg-blue-900' : 'bg-slate-100'
+                        }`}>
+                          <Moon className={`w-8 h-8 ${ darkMode ? 'text-blue-300' : 'text-slate-400'}`} />
+                        </div>
+                        <span className={`font-bold text-sm ${ darkMode ? 'text-blue-300' : 'text-slate-500'}`}>Dark</span>
+                        {darkMode && <span className="text-[10px] font-bold text-blue-300 bg-blue-900 px-2 py-0.5 rounded-full">Active</span>}
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Quick toggle */}
+                  <div className="uni-row flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
+                        darkMode ? 'bg-slate-800' : 'bg-amber-50'
+                      }`}>
+                        {darkMode
+                          ? <Moon className="w-6 h-6 text-blue-300" />
+                          : <Sun className="w-6 h-6 text-amber-500" />}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-[#334155] text-base">Dark Mode</h3>
+                        <p className="text-slate-500 text-sm">Switch between light and dark theme</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={darkMode}
+                        onChange={(e) => toggleDarkMode(e.target.checked)}
+                      />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
                   </div>
                 </div>
               </div>

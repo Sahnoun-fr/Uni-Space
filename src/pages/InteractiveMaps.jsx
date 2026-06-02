@@ -69,6 +69,12 @@ export default function Maps() {
     };
 
     loadUser();
+    // Apply dark mode preference
+    try {
+      const dm = localStorage.getItem('darkMode');
+      if (dm === 'true') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    } catch (e) {}
 
     return () => {
       isActive = false;
@@ -221,7 +227,7 @@ export default function Maps() {
   }) ?? [];
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
-      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0 uni-overlay" />
 
       {/* Top Navbar */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
@@ -310,7 +316,7 @@ export default function Maps() {
         </aside>
 
         {/* Main Glass Panel */}
-        <div className="flex-1 bg-white/20 backdrop-blur-xl rounded-[2rem] border border-white/30 flex overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+        <div className="flex-1 bg-white/20 backdrop-blur-xl rounded-[2rem] border border-white/30 flex overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.2)] uni-glass">
           
           {/* Center Content (Map + Charts) */}
           <main className="flex-1 p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto w-full">
@@ -460,7 +466,7 @@ export default function Maps() {
           </main>
 
           {/* Right Panel */}
-          <aside className="w-[280px] bg-[#B0C4DE] border-l border-white/20 flex flex-col shrink-0">
+          <aside className="w-[280px] bg-[#B0C4DE] border-l border-white/20 flex flex-col shrink-0 uni-right-panel">
              <div className="p-5 pb-0 mt-2 flex flex-col gap-3">
                 <div className="w-full h-28 rounded-xl overflow-hidden shadow-sm">
                   <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600" alt="Seat View" className="w-full h-full object-cover" />

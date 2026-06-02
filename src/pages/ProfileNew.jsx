@@ -23,6 +23,12 @@ export default function Profile() {
     } catch (error) {
       console.error('Unable to load notification preference', error);
     }
+    // Apply dark mode preference
+    try {
+      const dm = localStorage.getItem('darkMode');
+      if (dm === 'true') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    } catch (e) {}
 
     const loadProfile = async () => {
       const { data: authData } = await supabase.auth.getUser();
@@ -67,7 +73,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
-      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0 uni-overlay" />
 
       {/* Top Navbar */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
@@ -124,7 +130,7 @@ export default function Profile() {
       </header>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-start px-8 w-full max-w-[1000px] mx-auto pt-8 pb-12">
-        <div className="w-full bg-[#F8FAFC]/95 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white/40">
+        <div className="w-full bg-[#F8FAFC]/95 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white/40 uni-card">
           
           {/* Header Banner */}
           <div className="h-48 bg-gradient-to-r from-blue-500 to-indigo-600 relative">

@@ -28,6 +28,12 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Unable to load saved user', error);
     }
+    // Apply dark mode preference
+    try {
+      const dm = localStorage.getItem('darkMode');
+      if (dm === 'true') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    } catch (e) {}
 
     const loadBookingState = async () => {
       if (!supabase) return;
@@ -81,7 +87,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[url('/background%202.png')] bg-cover bg-center bg-no-repeat relative font-sans flex flex-col">
       {/* Overlay to match the blue hue from the design */}
-      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0" />
+      <div className="absolute inset-0 bg-blue-900/60 backdrop-blur-[2px] z-0 uni-overlay" />
 
       {/* Top Navbar */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 w-full max-w-[1400px] mx-auto">
@@ -141,7 +147,7 @@ export default function Dashboard() {
 
         {/* Booking Card */}
         {latestBooking ? (
-          <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col sm:flex-row gap-6 items-stretch border border-white/40">
+          <div className="bg-[#EAEFF5]/95 backdrop-blur-md rounded-[2rem] p-6 lg:w-[580px] shadow-2xl flex flex-col sm:flex-row gap-6 items-stretch border border-white/40 uni-card">
             <div className="flex-1 flex flex-col pr-4">
               <div className="flex items-center justify-between gap-4 mb-2">
                 <span className="text-[10px] font-bold tracking-widest text-[#2ED3A8] uppercase">Confirmed</span>

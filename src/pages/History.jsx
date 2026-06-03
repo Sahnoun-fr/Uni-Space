@@ -315,16 +315,12 @@ export default function History() {
                       {res.status}
                     </span>
                     {(() => {
-                      const hoursSinceStart = (new Date().getTime() - new Date(res.startTime).getTime()) / (1000 * 60 * 60);
-                      // Temporary bypass to allow deleting the two false reservations
-                      const isFalseReservation = res.id === 'Seat 1L-A1' || res.id === 'Seat 1R-C3';
-                      const canDelete = isFalseReservation || hoursSinceStart >= 10;
                       return (
                         <button 
                           onClick={() => handleDelete(res.bookingId)}
-                          disabled={isDeleting || !canDelete}
+                          disabled={isDeleting}
                           className="p-1.5 px-3 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
-                          title={!canDelete ? `Can be deleted in ${Math.ceil(10 - hoursSinceStart)} hours` : "Delete Reservation"}
+                          title="Delete Reservation"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           Delete

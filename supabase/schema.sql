@@ -83,11 +83,11 @@ create policy "Profiles are updatable by owner"
   using (auth.uid() = id or public.is_admin())
   with check (auth.uid() = id or public.is_admin());
 
-drop policy if exists "Bookings are viewable by owner" on public.bookings;
-create policy "Bookings are viewable by owner"
+drop policy if exists "Bookings are viewable by all authenticated users" on public.bookings;
+create policy "Bookings are viewable by all authenticated users"
   on public.bookings
   for select
-  using (auth.uid() = user_id or public.is_admin());
+  using (auth.uid() is not null);
 
 drop policy if exists "Bookings are insertable by owner" on public.bookings;
 create policy "Bookings are insertable by owner"

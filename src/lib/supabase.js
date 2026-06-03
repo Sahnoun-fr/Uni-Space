@@ -146,7 +146,7 @@ export const getSeatStats = async (floor) => {
   if (!supabase) return {};
   try {
     const { data, error } = await supabase
-      .from('seat_stats')
+      .from('seat_stat')
       .select('seat_id, wifi, outlet, noise, warmth')
       .eq('floor', floor);
     if (error) throw error;
@@ -166,7 +166,7 @@ export const upsertSeatStat = async ({ seatId, floor, stat, value }) => {
   if (!supabase) return;
   try {
     await supabase
-      .from('seat_stats')
+      .from('seat_stat')
       .upsert({ seat_id: seatId, floor, [stat]: value }, { onConflict: 'seat_id,floor' });
   } catch {
     /* table may not exist yet — fail silently */

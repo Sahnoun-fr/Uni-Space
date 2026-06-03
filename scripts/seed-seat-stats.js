@@ -41,7 +41,7 @@ const seats = [
 
 async function seed() {
   const { error } = await supabase
-    .from('seat_stats')
+    .from('seat_stat')
     .upsert(seats, { onConflict: 'seat_id,floor' });
 
   if (error) {

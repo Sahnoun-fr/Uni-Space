@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   School, Search, ChevronLeft, ChevronRight, CheckCircle2, 
-  AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft, Trash2 
+  AlertTriangle, User, History as HistoryIcon, Settings, Building2, LogOut, Bell, ArrowLeft, Trash2, XCircle 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, getUserProfile, getUserBookings } from '../lib/supabase';
@@ -141,7 +141,7 @@ export default function History() {
 
   const handleDelete = async (bookingId) => {
     if (isDeleting || !supabase) return;
-    if (!window.confirm("Are you sure you want to delete this reservation?")) return;
+    if (!window.confirm("Are you sure you want to delete this reservation from history?")) return;
     
     setIsDeleting(true);
     try {
@@ -151,6 +151,23 @@ export default function History() {
     } catch (error) {
       console.error('Error deleting booking:', error);
       alert('Unable to delete reservation.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancel = async (bookingId) => {
+    if (isDeleting || !supabase) return;
+    if (!window.confirm("Are you sure you want to cancel this reservation? The seat will be freed up.")) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
+      if (error) throw error;
+      setReservations(prev => prev.filter(r => r.bookingId !== bookingId));
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert('Unable to cancel reservation.');
     } finally {
       setIsDeleting(false);
     }
@@ -315,17 +332,50 @@ export default function History() {
                       {res.status}
                     </span>
                     {(() => {
-                      return (
-                        <button 
-                          onClick={() => handleDelete(res.bookingId)}
-                          disabled={isDeleting}
-                          className="p-1.5 px-3 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
-                          title="Delete Reservation"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
-                      );
+                      const now = new Date().getTime();
+                      const start = new Date(res.startTime).getTime();
+                      const minutesSinceStart = (now - start) / (1000 * 60);
+                      const hoursSinceStart = minutesSinceStart / 60;
+                      
+                      const canCancel = minutesSinceStart <= 15;
+                      const canDelete = hoursSinceStart >= 10;
+
+                      if (canCancel) {
+                        return (
+                          <button 
+                            onClick={() => handleCancel(res.bookingId)}
+                            disabled={isDeleting}
+                            className="p-1.5 px-3 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
+                            title="Cancel Reservation"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Cancel
+                          </button>
+                        );
+                      } else if (canDelete) {
+                        return (
+                          <button 
+                            onClick={() => handleDelete(res.bookingId)}
+                            disabled={isDeleting}
+                            className="p-1.5 px-3 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
+                            title="Delete Reservation"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        );
+                      } else {
+                        return (
+                          <button 
+                            disabled={true}
+                            className="p-1.5 px-3 rounded-md bg-slate-300 text-white cursor-not-allowed text-xs font-bold flex items-center gap-2 shadow-sm"
+                            title={`Can be deleted in ${Math.ceil(10 - hoursSinceStart)} hours`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        );
+                      }
                     })()}
                   </div>
                 </div>
